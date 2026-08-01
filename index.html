@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rockets &amp; Satellites — Explore the Machines That Left Earth</title>
+  <meta name="description" content="Browse every major rocket and satellite that went to space, video-game style, with 3D launch and orbit animations." />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+
+  <!-- Three.js loaded as ES modules from a pinned CDN (works on GitHub Pages) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="starfield"></div>
+  <canvas id="stars"></canvas>
+
+  <header class="topbar">
+    <div class="brand" id="brand-home">
+      <span class="logo">R&amp;S</span> <span>Rockets &amp; Satellites</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="crumbs" id="crumbs"></div>
+  </header>
+
+  <main id="app" class="wrap">
+    <!-- views are rendered here by js/app.js -->
+  </main>
+
+  <footer class="site">
+    Built for curious explorers · Data is a curated, expandable roster of history's major spacecraft.
+  </footer>
+
+  <!-- 3D animation modal mounts here -->
+  <div id="modal-root"></div>
+
+  <script type="module" src="js/app.js?v=18"></script>
+
+  <script src="js/stars.js"></script>
+</body>
+</html>
