@@ -1231,145 +1231,241 @@ let _earthTex = null;
 function makeEarthTextures() {
   if (_earthTex) return _earthTex;
   const W = 2048, H = 1024;
-  const day = document.createElement("canvas"); day.width = W; day.height = H;
+  const day   = document.createElement("canvas"); day.width   = W; day.height   = H;
   const night = document.createElement("canvas"); night.width = W; night.height = H;
   const cloud = document.createElement("canvas"); cloud.width = W; cloud.height = H;
-  const mask = document.createElement("canvas"); mask.width = W; mask.height = H;
-  const d = day.getContext("2d"), n = night.getContext("2d"), c = cloud.getContext("2d"), mk = mask.getContext("2d");
+  const mask  = document.createElement("canvas"); mask.width  = W; mask.height  = H;
+  const d = day.getContext("2d"), n = night.getContext("2d"),
+        c = cloud.getContext("2d"), mk = mask.getContext("2d");
 
-  // --- deep ocean with subtle depth variation ---
+  // --- Ocean: very dark navy, near-black like real photos ---
+  d.fillStyle = "#060d1c"; d.fillRect(0, 0, W, H);
+  // slight mid-latitude brightness
   const og = d.createLinearGradient(0, 0, 0, H);
-  og.addColorStop(0,    "#07203e");
-  og.addColorStop(0.18, "#0a2e52");
-  og.addColorStop(0.5,  "#0d3d6e");
-  og.addColorStop(0.82, "#0a2e52");
-  og.addColorStop(1,    "#07203e");
+  og.addColorStop(0,   "rgba(0,0,0,0)");
+  og.addColorStop(0.5, "rgba(8,28,60,0.55)");
+  og.addColorStop(1,   "rgba(0,0,0,0)");
   d.fillStyle = og; d.fillRect(0, 0, W, H);
-  // subtle ocean colour variation — shallow reefs and currents
-  for (let i = 0; i < 120; i++) {
-    const ox = Math.random() * W, oy = (0.1 + Math.random() * 0.8) * H;
-    const og2 = d.createRadialGradient(ox, oy, 0, ox, oy, 30 + Math.random() * 80);
-    og2.addColorStop(0, "rgba(18,80,120,0.18)"); og2.addColorStop(1, "rgba(0,0,0,0)");
-    d.fillStyle = og2; d.fillRect(0, 0, W, H);
-  }
-  n.fillStyle = "#000408"; n.fillRect(0, 0, W, H);
-  mk.fillStyle = "#000"; mk.fillRect(0, 0, W, H);
+  // Caribbean / Gulf of Mexico teal shallow water
+  const caribGrad = d.createRadialGradient(0.22*W, 0.44*H, 0, 0.22*W, 0.44*H, 0.06*W);
+  caribGrad.addColorStop(0, "rgba(0,120,130,0.55)"); caribGrad.addColorStop(1, "rgba(0,0,0,0)");
+  d.fillStyle = caribGrad; d.fillRect(0, 0, W, H);
 
-  // --- continent drawing helper ---
-  const drawBlob = (ctx, x, y, rx, ry, fill, seed = 0) => {
-    ctx.save(); ctx.beginPath();
-    for (let a = 0; a <= Math.PI * 2 + 0.05; a += 0.22) {
-      const wob = 0.72 + Math.sin(a * 4 + seed) * 0.18 + Math.sin(a * 7 + seed * 2) * 0.08;
-      const px = x + Math.cos(a) * rx * wob, py = y + Math.sin(a) * ry * wob;
-      a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  n.fillStyle = "#000205"; n.fillRect(0, 0, W, H);
+  mk.fillStyle = "#000";   mk.fillRect(0, 0, W, H);
+
+  // Wobble-blob helper — irregular continent outlines
+  const blob = (ctx, cx, cy, rx, ry, col, seed = 0, alpha = 1) => {
+    ctx.save(); ctx.globalAlpha = alpha; ctx.beginPath();
+    for (let a = 0; a <= Math.PI * 2 + 0.05; a += 0.18) {
+      const w = 0.68 + Math.sin(a * 3 + seed) * 0.20 + Math.sin(a * 7 + seed * 1.7) * 0.10
+                     + Math.sin(a * 13 + seed * 0.5) * 0.04;
+      const px = cx + Math.cos(a) * rx * w, py = cy + Math.sin(a) * ry * w;
+      a < 0.19 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
     }
-    ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); ctx.restore();
+    ctx.closePath(); ctx.fillStyle = col; ctx.fill(); ctx.restore();
   };
 
-  // --- continents with multi-layer biome coloring ---
-  const conts = [
-    // [cx, cy, blobs: [dx,dy,rx,ry,seed], deserts: [[dx,dy,rx,ry]]]
-    { cx: 0.195, cy: 0.285, blobs: [[0,0,0.058,0.115,1],[0.006,0.10,0.045,0.08,2],[0.032,0.19,0.025,0.055,3]], deserts: [[0.022,0.09,0.018,0.02]] },
-    { cx: 0.245, cy: 0.69,  blobs: [[0,0,0.038,0.12,4],[-0.008,-0.07,0.03,0.045,5]], deserts: [] },
-    { cx: 0.495, cy: 0.295, blobs: [[0,0,0.042,0.055,6],[0.01,0.04,0.025,0.03,7]], deserts: [] },
-    { cx: 0.525, cy: 0.56,  blobs: [[0,0,0.062,0.135,8],[0.012,-0.06,0.055,0.055,9]], deserts: [[0.01,-0.02,0.042,0.05],[0.03,0.04,0.03,0.04]] },
-    { cx: 0.695, cy: 0.305, blobs: [[0,0,0.115,0.11,10],[0.065,0.048,0.055,0.065,11],[-0.03,0.06,0.04,0.04,12]], deserts: [[0.04,0.01,0.05,0.045],[0.08,0.05,0.03,0.03]] },
-    { cx: 0.835, cy: 0.67,  blobs: [[0,0,0.05,0.038,13]], deserts: [[0.01,0.01,0.03,0.02]] },
-    { cx: 0.375, cy: 0.135, blobs: [[0,0,0.032,0.032,14]], deserts: [] },
-  ];
-  for (const ct of conts) {
-    for (const [dx, dy, rx, ry, seed] of ct.blobs) {
-      const x = (ct.cx + dx) * W, y = (ct.cy + dy) * H, RX = rx * W, RY = ry * H;
-      drawBlob(d, x, y, RX * 1.15, RY * 1.15, "#5a4a28", seed);  // sandy/rocky coast fringe
-      drawBlob(d, x, y, RX, RY, "#2a5e28", seed + 0.5);           // dense forest green
-      drawBlob(d, x, y, RX * 0.68, RY * 0.68, "#346830", seed + 1); // brighter interior
-      drawBlob(mk, x, y, RX, RY, "#fff", seed);
-    }
-    for (const [dx, dy, rx, ry] of ct.deserts) {
-      const x = (ct.cx + dx) * W, y = (ct.cy + dy) * H, RX = rx * W, RY = ry * H;
-      drawBlob(d, x, y, RX, RY, "#c4a060", Math.random() * 10);
-    }
+  // --- North America ---
+  // Coast fringe (sandy/rocky)
+  blob(d,  0.195*W, 0.275*H,  0.065*W, 0.125*H, "#7a6540", 1);
+  // Main land mass (mixed temperate green / brown)
+  blob(d,  0.195*W, 0.275*H,  0.058*W, 0.112*H, "#3a6030", 1.5);
+  blob(d,  0.195*W, 0.275*H,  0.038*W, 0.072*H, "#4a7038", 2.0);
+  // Mexico / southern plains (tan)
+  blob(d,  0.205*W, 0.38 *H,  0.028*W, 0.065*H, "#8c7040", 3);
+  blob(d,  0.205*W, 0.38 *H,  0.018*W, 0.045*H, "#a07e48", 3.5);
+  // Western US desert (prominent tan/brown)
+  blob(d,  0.175*W, 0.30 *H,  0.022*W, 0.055*H, "#9a7c44", 4);
+  // Rocky/Great Plains
+  blob(d,  0.182*W, 0.285*H,  0.018*W, 0.038*H, "#88733e", 4.5);
+  // Canada forest (darker green)
+  blob(d,  0.192*W, 0.19 *H,  0.048*W, 0.065*H, "#2e5828", 5);
+  // Alaska
+  blob(d,  0.125*W, 0.195*H,  0.018*W, 0.025*H, "#3a6030", 6);
+  // Mask land
+  blob(mk, 0.195*W, 0.30 *H,  0.065*W, 0.145*H, "#fff", 1);
+  blob(mk, 0.125*W, 0.195*H,  0.022*W, 0.030*H, "#fff", 6);
+
+  // --- South America ---
+  blob(d,  0.255*W, 0.66*H,  0.042*W, 0.125*H, "#5a4828", 7);   // coast
+  blob(d,  0.255*W, 0.66*H,  0.036*W, 0.112*H, "#2a5a24", 7.5); // land
+  // Amazon basin — very dark forest green
+  blob(d,  0.255*W, 0.62*H,  0.028*W, 0.062*H, "#1a4a1e", 8);
+  blob(d,  0.265*W, 0.64*H,  0.020*W, 0.040*H, "#153c18", 8.5);
+  // Andes / Patagonia (brown, rocky)
+  blob(d,  0.235*W, 0.74*H,  0.012*W, 0.058*H, "#7a6038", 9);
+  blob(mk, 0.255*W, 0.66*H,  0.042*W, 0.125*H, "#fff", 7);
+
+  // --- Europe ---
+  blob(d,  0.490*W, 0.275*H, 0.040*W, 0.052*H, "#5a5030", 10);
+  blob(d,  0.490*W, 0.275*H, 0.034*W, 0.044*H, "#3a6030", 10.5);
+  blob(d,  0.490*W, 0.275*H, 0.020*W, 0.025*H, "#4a7038", 11);
+  blob(mk, 0.490*W, 0.275*H, 0.040*W, 0.052*H, "#fff", 10);
+
+  // --- Africa — the dominant feature of the eastern hemisphere ---
+  // Sahara: huge tan band across northern Africa (most prominent feature)
+  blob(d,  0.508*W, 0.385*H, 0.085*W, 0.090*H, "#c8933a", 12);  // Sahara base
+  blob(d,  0.508*W, 0.385*H, 0.068*W, 0.070*H, "#d4a040", 12.5);// Sahara lighter core
+  blob(d,  0.508*W, 0.385*H, 0.042*W, 0.042*H, "#dca84a", 13);  // Sahara bright center
+  // Sub-Saharan Africa (green)
+  blob(d,  0.518*W, 0.555*H, 0.062*W, 0.095*H, "#2a5820", 14);
+  blob(d,  0.518*W, 0.555*H, 0.042*W, 0.065*H, "#346828", 14.5);
+  // Horn of Africa / East Africa (drier)
+  blob(d,  0.565*W, 0.505*H, 0.025*W, 0.042*H, "#8c7038", 15);
+  // Arabian peninsula (desert tan)
+  blob(d,  0.600*W, 0.385*H, 0.040*W, 0.060*H, "#c08838", 16);
+  blob(d,  0.600*W, 0.385*H, 0.024*W, 0.035*H, "#cca042", 16.5);
+  // Mask all of Africa + Arabia
+  blob(mk, 0.508*W, 0.385*H, 0.085*W, 0.090*H, "#fff", 12);
+  blob(mk, 0.518*W, 0.555*H, 0.062*W, 0.095*H, "#fff", 14);
+  blob(mk, 0.600*W, 0.385*H, 0.040*W, 0.060*H, "#fff", 16);
+
+  // --- Asia (huge landmass) ---
+  blob(d,  0.695*W, 0.305*H, 0.125*W, 0.115*H, "#5a5028", 17);   // coast fringe
+  blob(d,  0.695*W, 0.305*H, 0.112*W, 0.102*H, "#304c28", 17.5); // temperate forest
+  blob(d,  0.695*W, 0.305*H, 0.075*W, 0.065*H, "#3a5c30", 18);   // interior
+  // Siberia / northern Asia (darker green)
+  blob(d,  0.700*W, 0.185*H, 0.095*W, 0.065*H, "#285022", 19);
+  // Central Asian steppe / Gobi desert
+  blob(d,  0.700*W, 0.310*H, 0.055*W, 0.040*H, "#9a8248", 20);
+  blob(d,  0.700*W, 0.310*H, 0.030*W, 0.020*H, "#b09050", 20.5);
+  // Tibetan plateau (rocky gray-brown)
+  blob(d,  0.680*W, 0.315*H, 0.030*W, 0.018*H, "#888060", 21);
+  // Indian subcontinent
+  blob(d,  0.660*W, 0.415*H, 0.030*W, 0.065*H, "#4a7038", 22);
+  blob(d,  0.660*W, 0.415*H, 0.018*W, 0.040*H, "#5a8040", 22.5);
+  // SE Asia (darker green, tropical)
+  blob(d,  0.760*W, 0.430*H, 0.022*W, 0.045*H, "#2a5820", 23);
+  // Japan
+  blob(d,  0.810*W, 0.275*H, 0.010*W, 0.028*H, "#3a6030", 24);
+  // Mask Asia
+  blob(mk, 0.695*W, 0.305*H, 0.125*W, 0.115*H, "#fff", 17);
+  blob(mk, 0.700*W, 0.185*H, 0.095*W, 0.065*H, "#fff", 19);
+  blob(mk, 0.660*W, 0.415*H, 0.030*W, 0.065*H, "#fff", 22);
+  blob(mk, 0.760*W, 0.430*H, 0.022*W, 0.045*H, "#fff", 23);
+  blob(mk, 0.810*W, 0.275*H, 0.010*W, 0.028*H, "#fff", 24);
+
+  // --- Australia (mostly desert tan) ---
+  blob(d,  0.838*W, 0.665*H, 0.052*W, 0.040*H, "#a07840", 25);
+  blob(d,  0.838*W, 0.665*H, 0.038*W, 0.028*H, "#b88c48", 25.5);
+  // Australian coast strip (slightly greener)
+  blob(d,  0.838*W, 0.665*H, 0.052*W, 0.040*H, "#7a6030", 26, 0.4);
+  blob(mk, 0.838*W, 0.665*H, 0.052*W, 0.040*H, "#fff", 25);
+
+  // --- Greenland (white/ice) ---
+  blob(d,  0.373*W, 0.14 *H, 0.028*W, 0.032*H, "#aabcd8", 27);
+  blob(mk, 0.373*W, 0.14 *H, 0.028*W, 0.032*H, "#fff", 27);
+
+  // --- Polar ice caps ---
+  d.globalAlpha = 1; d.fillStyle = "#c8ddf0";
+  d.fillRect(0, 0, W, H * 0.038);
+  d.fillRect(0, H * 0.93, W, H * 0.07);
+  // ragged edge
+  for (let i = 0; i < 60; i++) {
+    d.globalAlpha = 0.7 + Math.random() * 0.3;
+    d.fillStyle = "#d8eaff";
+    d.beginPath();
+    d.ellipse(Math.random() * W, H * (Math.random() < 0.5 ? 0.05 + Math.random() * 0.03 : 0.935 - Math.random() * 0.03),
+      40 + Math.random() * 120, 8 + Math.random() * 18, Math.random() * Math.PI, 0, Math.PI * 2); d.fill();
   }
+  mk.globalAlpha = 1; mk.fillStyle = "#fff";
+  mk.fillRect(0, 0, W, H * 0.05); mk.fillRect(0, H * 0.92, W, H * 0.08);
+  d.globalAlpha = 1;
 
-  // Sahara + Arabian peninsula extra coverage
-  drawBlob(d, 0.52 * W, 0.42 * H, 0.06 * W, 0.06 * H, "#c8a555", 3);
-  drawBlob(d, 0.60 * W, 0.40 * H, 0.04 * W, 0.04 * H, "#c0994a", 5);
-  // Amazon rainforest darker green
-  drawBlob(d, 0.25 * W, 0.64 * H, 0.028 * W, 0.04 * H, "#1e5220", 7);
-  // Tibetan plateau / Himalayas hint (lighter, rocky)
-  drawBlob(d, 0.68 * W, 0.32 * H, 0.04 * W, 0.022 * H, "#8a7a5a", 9);
-
-  // --- polar ice caps (ragged edges) ---
-  for (let i = 0; i < 48; i++) {
-    const frac = 0.04 + Math.random() * 0.03;
-    d.globalAlpha = 0.85; d.fillStyle = "#dceeff";
-    d.beginPath(); d.ellipse((Math.random() * 1.2 - 0.1) * W, Math.random() * frac * H, 60 + Math.random() * 120, 12 + Math.random() * 20, Math.random() * Math.PI, 0, Math.PI * 2); d.fill();
-    d.beginPath(); d.ellipse((Math.random() * 1.2 - 0.1) * W, H - Math.random() * frac * H, 60 + Math.random() * 100, 10 + Math.random() * 16, Math.random() * Math.PI, 0, Math.PI * 2); d.fill();
-    mk.globalAlpha = 1; mk.fillStyle = "#fff";
-    mk.fillRect(0, 0, W, H * 0.04); mk.fillRect(0, H * 0.96, W, H * 0.04);
-  }
-  d.globalAlpha = 1; mk.globalAlpha = 1;
-
-  // --- concentrated city light clusters (night) ---
+  // --- City lights (night side) ---
   const md = mk.getImageData(0, 0, W, H).data;
-  // bright city cluster helper
   const cityCluster = (cx, cy, spread, count) => {
     for (let i = 0; i < count; i++) {
       const lx = (cx + (Math.random() - 0.5) * spread) * W | 0;
       const ly = (cy + (Math.random() - 0.5) * spread * 0.5) * H | 0;
       if (lx < 0 || lx >= W || ly < 0 || ly >= H) continue;
-      if (md[(ly * W + lx) * 4] < 80) continue;
-      n.globalAlpha = 0.5 + Math.random() * 0.5;
-      n.fillStyle = Math.random() < 0.7 ? "#ffe8a0" : "#ffd070";
-      n.fillRect(lx, ly, Math.random() < 0.12 ? 3 : 1, 1);
+      if (md[(ly * W + lx) * 4] < 60) continue;
+      n.globalAlpha = 0.55 + Math.random() * 0.45;
+      n.fillStyle = Math.random() < 0.65 ? "#ffe8a0" : "#ffd060";
+      n.fillRect(lx, ly, Math.random() < 0.1 ? 3 : Math.random() < 0.3 ? 2 : 1, 1);
     }
   };
-  n.fillStyle = "#ffe090";
-  // N America east coast, europe, india, china, japan, SE Asia
-  cityCluster(0.19,0.28, 0.06, 500); cityCluster(0.17,0.31, 0.04, 300);
-  cityCluster(0.49,0.27, 0.07, 600); cityCluster(0.53,0.23, 0.04, 300);
-  cityCluster(0.63,0.35, 0.05, 400); cityCluster(0.73,0.32, 0.06, 550);
-  cityCluster(0.80,0.30, 0.04, 350); cityCluster(0.84,0.25, 0.03, 200);
-  cityCluster(0.52,0.52, 0.04, 200); cityCluster(0.55,0.60, 0.03, 150);
-  // scattered sparse dots everywhere else on land
-  for (let i = 0; i < 3000; i++) {
-    const lx = (Math.random() * W) | 0, ly = ((0.06 + Math.random() * 0.88) * H) | 0;
-    if (md[(ly * W + lx) * 4] > 100 && Math.random() < 0.35) {
-      n.globalAlpha = 0.3 + Math.random() * 0.5;
-      n.fillRect(lx, ly, 1, 1);
+  cityCluster(0.185,0.265, 0.06, 600); cityCluster(0.178,0.30, 0.04, 350);  // N America E coast
+  cityCluster(0.488,0.265, 0.07, 700); cityCluster(0.510,0.225, 0.04, 300); // Europe
+  cityCluster(0.635,0.35,  0.05, 400); cityCluster(0.650,0.40,  0.04, 250); // India
+  cityCluster(0.742,0.32,  0.06, 600); cityCluster(0.790,0.295, 0.04, 400); // China/Korea
+  cityCluster(0.820,0.265, 0.03, 280); cityCluster(0.833,0.31,  0.02, 180); // Japan
+  cityCluster(0.515,0.52,  0.04, 180); cityCluster(0.540,0.60,  0.03, 130); // E Africa / S Africa
+  for (let i = 0; i < 2500; i++) {
+    const lx = (Math.random() * W) | 0, ly = ((0.06 + Math.random() * 0.86) * H) | 0;
+    if (md[(ly * W + lx) * 4] > 80 && Math.random() < 0.30) {
+      n.globalAlpha = 0.25 + Math.random() * 0.45;
+      n.fillStyle = "#ffda80"; n.fillRect(lx, ly, 1, 1);
     }
   }
   n.globalAlpha = 1;
 
-  // --- realistic cloud system ---
+  // --- Clouds: bright white, dramatic spiraling masses ---
   c.fillStyle = "#000"; c.fillRect(0, 0, W, H);
-  // ITCZ — broad tropical cloud band near equator
-  for (let i = 0; i < 60; i++) {
-    c.globalAlpha = 0.04 + Math.random() * 0.09;
-    c.fillStyle = "#fff";
-    const cx = Math.random() * W, cy = (0.44 + Math.random() * 0.12) * H;
-    c.beginPath(); c.ellipse(cx, cy, 80 + Math.random() * 160, 8 + Math.random() * 18, (Math.random() - 0.5) * 0.4, 0, Math.PI * 2); c.fill();
-  }
-  // mid-latitude cyclone spirals
-  for (let i = 0; i < 10; i++) {
-    const cx = Math.random() * W, cy = (0.18 + Math.random() * 0.18) * H + (Math.random() < 0.5 ? H * 0.5 : 0);
+
+  // Large storm spiral helper — looks like real satellite imagery
+  const stormSpiral = (cx, cy, dir = 1) => {
+    // Opaque dense core
+    c.globalAlpha = 0.75; c.fillStyle = "#fff";
+    c.beginPath(); c.ellipse(cx, cy, 18, 18, 0, 0, Math.PI * 2); c.fill();
+    // Spiral arms
     for (let arm = 0; arm < 3; arm++) {
-      for (let t = 0; t < 1; t += 0.04) {
-        const r = 30 + t * 120, a = arm * Math.PI * 2 / 3 + t * Math.PI * 2.5;
-        c.globalAlpha = 0.07 * (1 - t);
+      const startA = (arm / 3) * Math.PI * 2;
+      for (let t = 0; t < 1.0; t += 0.025) {
+        const r = 14 + t * 180;
+        const a = startA + dir * t * Math.PI * 2.8;
+        const bw = 22 + t * 40;
+        const bh = 6 + t * 12;
+        c.globalAlpha = Math.max(0, 0.72 - t * 0.72);
         c.fillStyle = "#fff";
-        c.beginPath(); c.ellipse(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.55, 28 + t * 30, 6 + t * 8, a + 0.5, 0, Math.PI * 2); c.fill();
+        c.save(); c.translate(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.6);
+        c.rotate(a + (dir > 0 ? 0.5 : -0.5));
+        c.beginPath(); c.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2); c.fill();
+        c.restore();
       }
     }
-  }
-  // scattered cumulus patches
-  for (let i = 0; i < 180; i++) {
-    const cy = Math.random() * H;
-    if (Math.random() > 0.65) continue;
-    c.globalAlpha = 0.04 + Math.random() * 0.10;
+    c.globalAlpha = 1;
+  };
+
+  // Frontal cloud band helper (elongated streaks)
+  const cloudFront = (y, xStart, xEnd, width, opacity) => {
+    c.globalAlpha = opacity; c.fillStyle = "#fff";
+    c.beginPath(); c.ellipse((xStart + xEnd) / 2, y, (xEnd - xStart) / 2, width / 2, 0, 0, Math.PI * 2);
+    c.fill(); c.globalAlpha = 1;
+  };
+
+  // Place 6 large storm systems
+  stormSpiral(0.08*W,  0.22*H, -1);  // N Pacific
+  stormSpiral(0.92*W,  0.22*H,  1);  // N Pacific east wraparound
+  stormSpiral(0.38*W,  0.20*H, -1);  // N Atlantic
+  stormSpiral(0.18*W,  0.73*H,  1);  // S Pacific
+  stormSpiral(0.55*W,  0.78*H,  1);  // Indian Ocean
+  stormSpiral(0.85*W,  0.75*H,  1);  // S Pacific east
+
+  // ITCZ — broad tropical convergence zone, high opacity broken band
+  for (let i = 0; i < 80; i++) {
+    c.globalAlpha = 0.35 + Math.random() * 0.40;
     c.fillStyle = "#fff";
-    const cx = Math.random() * W;
-    c.beginPath(); c.ellipse(cx, cy, 18 + Math.random() * 70, 5 + Math.random() * 16, (Math.random() - 0.5) * 0.6, 0, Math.PI * 2); c.fill();
+    const cx = Math.random() * W * 1.1 - 0.05 * W;
+    const cy = (0.440 + Math.random() * 0.12) * H;
+    c.beginPath(); c.ellipse(cx, cy, 50 + Math.random() * 130, 6 + Math.random() * 14, (Math.random() - 0.5) * 0.5, 0, Math.PI * 2); c.fill();
+  }
+
+  // Mid-latitude frontal systems — long bright streaks
+  for (let i = 0; i < 14; i++) {
+    const fy = (0.15 + Math.random() * 0.22) * H * (Math.random() < 0.5 ? 1 : (H / (0.37 * H)));
+    c.globalAlpha = 0.30 + Math.random() * 0.35;
+    c.fillStyle = "#fff";
+    const fx = Math.random() * W, fw = 100 + Math.random() * 300;
+    c.beginPath(); c.ellipse(fx, Math.min(H - 10, Math.max(10, fy)), fw, 8 + Math.random() * 20, (Math.random() - 0.5) * 0.8, 0, Math.PI * 2); c.fill();
+  }
+
+  // Scattered cumulus — moderate density with decent opacity
+  for (let i = 0; i < 220; i++) {
+    c.globalAlpha = 0.18 + Math.random() * 0.28;
+    c.fillStyle = "#fff";
+    c.beginPath(); c.ellipse(Math.random() * W, Math.random() * H, 12 + Math.random() * 55, 4 + Math.random() * 14, (Math.random() - 0.5) * 0.7, 0, Math.PI * 2); c.fill();
   }
   c.globalAlpha = 1;
 
@@ -1469,78 +1565,99 @@ function makePlanetTexture(kind, opts = {}) {
 
   switch (kind) {
     case "moon": {
-      // Realistic lunar surface — warm gray highlands
-      fill("#9a9890");
-      // Subtle highland colour variation
-      softBlobs(200, ["#aeaca8", "#888680", "#c2c0bc", "#7a7870"], 20, 120, 0.04, 0.10);
+      // Highland base — medium gray like real lunar highlands
+      fill("#888480");
+      // Highland variation — lighter peaks, slightly darker troughs
+      softBlobs(300, ["#a0a09c", "#707068", "#c0bcb8", "#686460", "#b4b0ac"], 15, 140, 0.04, 0.12);
 
-      // Large basaltic maria — placed to match real Moon nearside
-      // Oceanus Procellarum: enormous, covers ~30% of nearside left quarter
-      const mariaList = [
-        [0.06, 0.50, 0.20, 0.30, 0.15, 0.28, "#4a4846"],  // Oceanus Procellarum (huge)
-        [0.16, 0.38, 0.11, 0.10, 0.30, 0.22, "#504e4c"],   // Mare Imbrium
-        [0.35, 0.42, 0.09, 0.07, -0.2, 0.20, "#484644"],   // Mare Tranquillitatis
-        [0.32, 0.35, 0.07, 0.07, 0.5,  0.18, "#4c4a48"],   // Mare Serenitatis
-        [0.65, 0.42, 0.05, 0.06, 0.1,  0.22, "#4e4c4a"],   // Mare Crisium
-        [0.25, 0.54, 0.07, 0.05, 0.4,  0.16, "#464442"],   // Mare Nubium
-        [0.15, 0.56, 0.06, 0.04, -0.1, 0.16, "#484644"],   // Mare Humorum
-        [0.30, 0.45, 0.04, 0.04, 0.2,  0.14, "#4a4846"],   // Mare Vaporum
-        [0.44, 0.50, 0.05, 0.04, 0.6,  0.14, "#484644"],   // Mare Nectaris
-        [0.56, 0.38, 0.04, 0.04, 0.0,  0.14, "#4c4a48"],   // Mare Frigoris (fragment)
-      ];
-      for (const [cx, cy, rx, ry, rot, alpha, col] of mariaList) {
-        // Soft feathered edge — draw multiple overlapping ellipses with decreasing alpha
-        for (let pass = 0; pass < 3; pass++) {
-          const scale = 1 + pass * 0.18;
-          x.globalAlpha = alpha * (1 - pass * 0.3);
-          x.fillStyle = col;
-          x.beginPath(); x.ellipse(cx * s, cy * H, rx * s * scale, ry * H * scale, rot, 0, Math.PI * 2); x.fill();
+      // Dark maria — near-charcoal, very high opacity to match real photos
+      // Each mare gets 4 heavy passes: base darken + 3 feathered soft layers
+      const darkMare = (cx, cy, rx, ry, rot) => {
+        // Hard-fill pass — deepest darkness
+        x.globalAlpha = 0.90; x.fillStyle = "#1e1c1a";
+        x.beginPath(); x.ellipse(cx, cy, rx, ry, rot, 0, Math.PI * 2); x.fill();
+        // Slight color variation inside mare
+        x.globalAlpha = 0.25; x.fillStyle = "#282420";
+        x.beginPath(); x.ellipse(cx, cy, rx * 0.7, ry * 0.7, rot, 0, Math.PI * 2); x.fill();
+        // Soft feathered outer edge
+        for (let pass = 1; pass <= 3; pass++) {
+          const sc = 1 + pass * 0.22;
+          x.globalAlpha = 0.55 / pass;
+          x.fillStyle = "#1a1816";
+          x.beginPath(); x.ellipse(cx, cy, rx * sc, ry * sc, rot, 0, Math.PI * 2); x.fill();
         }
         x.globalAlpha = 1;
-      }
+      };
 
-      // Fine regolith grain across the whole surface
-      softBlobs(1200, ["#c0beba", "#888480", "#a8a6a2", "#d4d2ce", "#707070"], 2, 22, 0.02, 0.07);
+      // Oceanus Procellarum — huge, covers entire left third of the nearside
+      darkMare(0.08 * s, 0.50 * H, 0.195 * s, 0.295 * H, 0.15);
+      // Additional northern lobe of Procellarum
+      darkMare(0.10 * s, 0.30 * H, 0.100 * s, 0.120 * H, 0.10);
 
-      // Large crater field — varied sizes
-      craters(500, 4, 55);
-      // Medium craters
-      craters(400, 2, 18);
-      // Micro-craters / pitting
-      craters(800, 1, 6);
+      // Mare Imbrium — large circular dark sea, upper left
+      darkMare(0.175 * s, 0.36 * H, 0.105 * s, 0.095 * H, 0.30);
+      // Mare Serenitatis — distinct oval, right of Imbrium
+      darkMare(0.330 * s, 0.335*H, 0.075 * s, 0.078 * H, 0.50);
+      // Mare Tranquillitatis — irregular, below Serenitatis
+      darkMare(0.355 * s, 0.435*H, 0.090 * s, 0.072 * H, -0.25);
+      // Mare Crisium — isolated oval, right edge
+      darkMare(0.655 * s, 0.400*H, 0.052 * s, 0.060 * H, 0.10);
+      // Mare Nubium — below center
+      darkMare(0.260 * s, 0.560*H, 0.068 * s, 0.050 * H, 0.40);
+      // Mare Humorum — left-center bottom
+      darkMare(0.155 * s, 0.575*H, 0.058 * s, 0.042 * H, -0.10);
+      // Mare Vaporum — small, center
+      darkMare(0.300 * s, 0.455*H, 0.040 * s, 0.038 * H, 0.20);
+      // Mare Nectaris — small, lower right of center
+      darkMare(0.440 * s, 0.510*H, 0.042 * s, 0.036 * H, 0.60);
+      // Mare Frigoris — thin horizontal band across top
+      x.globalAlpha = 0.80; x.fillStyle = "#201e1c";
+      x.beginPath(); x.ellipse(0.30 * s, 0.255*H, 0.200 * s, 0.030 * H, 0.05, 0, Math.PI * 2); x.fill();
+      x.globalAlpha = 1;
 
-      // Bright rayed craters — Tycho (bottom), Copernicus (center-left), Aristarchus (far left)
-      const rayedCrater = (cx, cy, r, rayLen, rayCount) => {
-        // Rays first (background)
+      // Fine regolith pitting and albedo variation over the whole surface
+      softBlobs(1400, ["#b0aca8", "#747068", "#a4a09c", "#c8c4c0", "#606058"], 2, 28, 0.015, 0.065);
+
+      // Craters — large, medium, micro in 3 passes
+      craters(450, 5, 65);
+      craters(500, 2, 20);
+      craters(900, 1, 7);
+
+      // Rayed craters — Tycho, Copernicus, Aristarchus, Kepler
+      const rayedCrater = (cx, cy, r, rayLen, rayCount, brightness = 220) => {
+        const B = brightness;
+        // Long bright rays radiate outward first
         for (let i = 0; i < rayCount; i++) {
-          const a = (i / rayCount) * Math.PI * 2 + Math.random() * 0.3;
-          const len = rayLen * (0.6 + Math.random() * 0.8);
-          const wid = r * (0.06 + Math.random() * 0.06);
-          const g = x.createLinearGradient(cx, cy, cx + Math.cos(a) * len, cy + Math.sin(a) * len);
-          g.addColorStop(0, "rgba(230,228,220,0.45)");
-          g.addColorStop(1, "rgba(230,228,220,0)");
-          x.save(); x.strokeStyle = g; x.lineWidth = wid;
+          const a = (i / rayCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
+          const len = rayLen * (0.5 + Math.random() * 0.9);
+          const wid = r * (0.07 + Math.random() * 0.07);
+          const rg = x.createLinearGradient(cx, cy, cx + Math.cos(a) * len, cy + Math.sin(a) * len);
+          rg.addColorStop(0.05, `rgba(${B},${B-5},${B-10},0.55)`);
+          rg.addColorStop(0.40, `rgba(${B},${B-5},${B-10},0.22)`);
+          rg.addColorStop(1,    `rgba(${B},${B-5},${B-10},0)`);
+          x.save(); x.strokeStyle = rg; x.lineWidth = wid;
           x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len);
           x.stroke(); x.restore();
         }
-        // Bright ejecta blanket
-        const eg = x.createRadialGradient(cx, cy, 0, cx, cy, r * 2.5);
-        eg.addColorStop(0,   "rgba(235,232,225,0.70)");
-        eg.addColorStop(0.5, "rgba(220,218,210,0.30)");
-        eg.addColorStop(1,   "rgba(220,218,210,0)");
-        x.fillStyle = eg; x.beginPath(); x.arc(cx, cy, r * 2.5, 0, Math.PI * 2); x.fill();
-        // Crater bowl
-        const cg = x.createRadialGradient(cx, cy, r * 0.1, cx, cy, r);
-        cg.addColorStop(0,    "rgba(50,48,46,0.70)");
-        cg.addColorStop(0.7,  "rgba(90,88,86,0.12)");
-        cg.addColorStop(0.88, "rgba(230,228,220,0.55)");
-        cg.addColorStop(1,    "rgba(160,158,154,0)");
+        // Ejecta blanket
+        const eg = x.createRadialGradient(cx, cy, 0, cx, cy, r * 3.0);
+        eg.addColorStop(0,   `rgba(${B},${B-5},${B-10},0.80)`);
+        eg.addColorStop(0.4, `rgba(${B},${B-5},${B-10},0.40)`);
+        eg.addColorStop(0.8, `rgba(${B},${B-5},${B-10},0.12)`);
+        eg.addColorStop(1,   `rgba(${B},${B-5},${B-10},0)`);
+        x.fillStyle = eg; x.beginPath(); x.arc(cx, cy, r * 3.0, 0, Math.PI * 2); x.fill();
+        // Crater bowl (dark center, bright rim)
+        const cg = x.createRadialGradient(cx, cy, r * 0.08, cx, cy, r);
+        cg.addColorStop(0,    "rgba(28,26,24,0.85)");
+        cg.addColorStop(0.55, "rgba(60,58,55,0.15)");
+        cg.addColorStop(0.82, `rgba(${B},${B-5},${B-10},0.65)`);
+        cg.addColorStop(1,    "rgba(120,118,114,0)");
         x.fillStyle = cg; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
       };
-      rayedCrater(0.38 * s, 0.72 * H, 18, 220, 18);  // Tycho
-      rayedCrater(0.24 * s, 0.48 * H, 14, 160, 14);  // Copernicus
-      rayedCrater(0.06 * s, 0.44 * H, 10, 110, 12);  // Aristarchus
-      rayedCrater(0.70 * s, 0.30 * H, 8,  90,  10);  // Kepler-like
+      rayedCrater(0.370*s, 0.730*H, 22, 280, 22, 225); // Tycho — bottom, very prominent
+      rayedCrater(0.240*s, 0.470*H, 16, 195, 18, 215); // Copernicus — center-left
+      rayedCrater(0.063*s, 0.430*H, 11, 130, 14, 235); // Aristarchus — far left, brightest spot
+      rayedCrater(0.690*s, 0.295*H, 9,  100, 12, 210); // Kepler
       break;
     }
     case "mars": {
