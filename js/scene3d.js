@@ -899,9 +899,16 @@ const ATMO_FRAG = `
   varying vec3 vNormal; varying vec3 vWorld; uniform vec3 sunDir;
   void main(){
     vec3 viewDir = normalize(cameraPosition - vWorld);
-    float rim = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 2.5);
-    float lit = clamp(dot(vNormal, normalize(sunDir)) + 0.3, 0.0, 1.0);
-    gl_FragColor = vec4(vec3(0.30,0.55,1.0) * rim * (0.35 + lit), 1.0);
+    vec3 sun = normalize(sunDir);
+    float rim = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 2.2);
+    float ndotL = dot(vNormal, sun);
+    float lit = clamp(ndotL + 0.35, 0.0, 1.0);
+    // warm sunset/sunrise tones near terminator, pure blue on day side
+    float termFrac = smoothstep(-0.15, 0.25, ndotL);
+    vec3 sunsetCol = vec3(0.90, 0.40, 0.08);
+    vec3 dayCol    = vec3(0.22, 0.52, 1.00);
+    vec3 atmoColor = mix(sunsetCol, dayCol, termFrac);
+    gl_FragColor = vec4(atmoColor * rim * (0.28 + lit * 0.72), 1.0);
   }`;
 
 const EARTH_VERT = `
@@ -917,21 +924,44 @@ const EARTH_FRAG = `
   varying vec2 vUv; varying vec3 vNormal; varying vec3 vWorld;
   void main(){
     vec3 nrm = normalize(vNormal);
-    float lambert = dot(nrm, normalize(sunDir));
-    float dayAmt = smoothstep(-0.12, 0.28, lambert);
-    vec3 day = texture2D(dayTex, vUv).rgb;
+    vec3 sun = normalize(sunDir);
+    float lambert = dot(nrm, sun);
+    // smooth day/night blend — sharper terminator than before
+    float dayAmt = smoothstep(-0.06, 0.18, lambert);
+
+    vec3 day   = texture2D(dayTex, vUv).rgb;
     vec3 night = texture2D(nightTex, vUv).rgb;
-    float cloud = texture2D(cloudTex, vUv + vec2(time * 0.004, 0.0)).r;
-    // clouds: lit white on day side, dim on night side
-    vec3 dayCol = mix(day, vec3(1.05), cloud * 0.85);
-    dayCol *= (0.25 + 0.95 * clamp(lambert, 0.0, 1.0));            // shade by sun angle
-    vec3 nightCol = night * (1.0 - cloud * 0.6);
-    vec3 col = mix(nightCol, dayCol, dayAmt);
-    // ocean sun-glint + limb fresnel
+    float cloud = texture2D(cloudTex, vUv + vec2(time * 0.003, 0.0)).r;
+
+    // Clouds: very bright, nearly opaque at full coverage
+    vec3 cloudCol = vec3(1.0, 1.0, 1.02);
+    vec3 dayLand  = mix(day, cloudCol, cloud * 0.96);
+
+    // Sun shading: low ambient so terminator is dark, bright noon
+    float shade = 0.06 + 0.94 * clamp(lambert, 0.0, 1.0);
+    // boost contrast slightly so colours pop like a real photo
+    dayLand = pow(dayLand * shade, vec3(0.90));
+
+    // Subtle warm tint near terminator (atmospheric reddening)
+    float termGlow = smoothstep(0.0, 0.18, lambert) * (1.0 - smoothstep(0.18, 0.55, lambert));
+    dayLand += vec3(0.12, 0.05, 0.0) * termGlow * (1.0 - cloud * 0.8);
+
+    // Night side: city lights, dimmed by clouds
+    vec3 nightCol = night * (1.0 - cloud * 0.75) * 1.4;
+
+    vec3 col = mix(nightCol, dayLand, dayAmt);
+
+    // Specular sun glint on ocean surface
     vec3 viewDir = normalize(cameraPosition - vWorld);
-    float fres = pow(1.0 - max(dot(nrm, viewDir), 0.0), 3.0);
-    col += vec3(0.20,0.45,1.0) * fres * 0.5 * dayAmt;
-    gl_FragColor = vec4(col, 1.0);
+    vec3 halfV   = normalize(sun + viewDir);
+    float spec   = pow(max(dot(nrm, halfV), 0.0), 80.0);
+    col += vec3(1.0, 0.97, 0.88) * spec * (1.0 - cloud) * dayAmt * 0.55;
+
+    // Atmospheric rim glow (blue haze at limb)
+    float rim = pow(1.0 - max(dot(nrm, viewDir), 0.0), 4.0);
+    col += vec3(0.10, 0.38, 0.92) * rim * dayAmt * 0.55;
+
+    gl_FragColor = vec4(clamp(col, 0.0, 1.5), 1.0);
   }`;
 
 // ============================================================================
@@ -1238,18 +1268,29 @@ function makeEarthTextures() {
   const d = day.getContext("2d"), n = night.getContext("2d"),
         c = cloud.getContext("2d"), mk = mask.getContext("2d");
 
-  // --- Ocean: very dark navy, near-black like real photos ---
-  d.fillStyle = "#060d1c"; d.fillRect(0, 0, W, H);
-  // slight mid-latitude brightness
+  // --- Ocean: rich "Blue Marble" blue — the defining look of Earth from space ---
   const og = d.createLinearGradient(0, 0, 0, H);
-  og.addColorStop(0,   "rgba(0,0,0,0)");
-  og.addColorStop(0.5, "rgba(8,28,60,0.55)");
-  og.addColorStop(1,   "rgba(0,0,0,0)");
+  og.addColorStop(0,    "#0c3d80");  // polar — slightly darker
+  og.addColorStop(0.20, "#1458a8");  // sub-polar
+  og.addColorStop(0.50, "#1e6ec4");  // equatorial — bright tropical blue
+  og.addColorStop(0.80, "#1458a8");  // sub-polar
+  og.addColorStop(1.0,  "#0c3d80");  // polar
   d.fillStyle = og; d.fillRect(0, 0, W, H);
+  // subtle ocean depth variation — darker trenches, lighter shallows
+  for (let i = 0; i < 60; i++) {
+    const ox = Math.random() * W, oy = (0.15 + Math.random() * 0.7) * H;
+    const r = d.createRadialGradient(ox, oy, 0, ox, oy, 50 + Math.random() * 100);
+    r.addColorStop(0, "rgba(10,55,130,0.20)"); r.addColorStop(1, "rgba(0,0,0,0)");
+    d.fillStyle = r; d.fillRect(0, 0, W, H);
+  }
   // Caribbean / Gulf of Mexico teal shallow water
   const caribGrad = d.createRadialGradient(0.22*W, 0.44*H, 0, 0.22*W, 0.44*H, 0.06*W);
-  caribGrad.addColorStop(0, "rgba(0,120,130,0.55)"); caribGrad.addColorStop(1, "rgba(0,0,0,0)");
+  caribGrad.addColorStop(0, "rgba(0,165,180,0.65)"); caribGrad.addColorStop(1, "rgba(0,0,0,0)");
   d.fillStyle = caribGrad; d.fillRect(0, 0, W, H);
+  // Mediterranean Sea — slightly greenish
+  const medGrad = d.createRadialGradient(0.515*W, 0.34*H, 0, 0.515*W, 0.34*H, 0.025*W);
+  medGrad.addColorStop(0, "rgba(0,120,160,0.55)"); medGrad.addColorStop(1, "rgba(0,0,0,0)");
+  d.fillStyle = medGrad; d.fillRect(0, 0, W, H);
 
   n.fillStyle = "#000205"; n.fillRect(0, 0, W, H);
   mk.fillStyle = "#000";   mk.fillRect(0, 0, W, H);
@@ -1545,16 +1586,26 @@ function makePlanetTexture(kind, opts = {}) {
         cols[i % cols.length], aMin + Math.random() * (aMax - aMin));
   };
 
-  // Craters with rim highlights — used for rocky bodies
+  // Craters — realistic: dark bowl + barely-visible rim, no ejecta halo
   const craters = (n, rmin = 3, rmax = 28) => {
     for (let i = 0; i < n; i++) {
       const cx = Math.random() * s, cy = Math.random() * H, r = rmin + Math.random() * (rmax - rmin);
-      const g = x.createRadialGradient(cx, cy, r * 0.15, cx, cy, r);
-      g.addColorStop(0,    "rgba(38,38,38,0.55)");
-      g.addColorStop(0.65, "rgba(120,120,120,0.08)");
-      g.addColorStop(0.82, "rgba(230,230,230,0.38)");
-      g.addColorStop(1,    "rgba(100,100,100,0)");
-      x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
+      // Dark bowl — the dominant visual element
+      const bowl = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+      bowl.addColorStop(0,    "rgba(18,16,14,0.55)");
+      bowl.addColorStop(0.50, "rgba(28,26,22,0.22)");
+      bowl.addColorStop(0.80, "rgba(40,38,34,0.06)");
+      bowl.addColorStop(1,    "rgba(50,48,44,0.0)");
+      x.fillStyle = bowl; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
+      // Subtle rim — very low opacity, barely a highlight
+      if (r > 10) {
+        const rim = x.createRadialGradient(cx, cy, r * 0.80, cx, cy, r * 1.05);
+        rim.addColorStop(0,   "rgba(185,180,172,0.0)");
+        rim.addColorStop(0.7, "rgba(185,180,172,0.0)");
+        rim.addColorStop(0.9, "rgba(185,180,172,0.12)");
+        rim.addColorStop(1,   "rgba(120,116,110,0.0)");
+        x.fillStyle = rim; x.beginPath(); x.arc(cx, cy, r * 1.05, 0, Math.PI * 2); x.fill();
+      }
     }
   };
 
@@ -1565,10 +1616,10 @@ function makePlanetTexture(kind, opts = {}) {
 
   switch (kind) {
     case "moon": {
-      // Highland base — medium gray like real lunar highlands
-      fill("#888480");
-      // Highland variation — lighter peaks, slightly darker troughs
-      softBlobs(300, ["#a0a09c", "#707068", "#c0bcb8", "#686460", "#b4b0ac"], 15, 140, 0.04, 0.12);
+      // Highland base — warm medium gray matching real lunar photos (not cool gray)
+      fill("#8c8880");
+      // Highland variation — lighter peaks, warm tone, slightly darker troughs
+      softBlobs(300, ["#a8a49e", "#726e68", "#c4c0ba", "#6a6660", "#b8b4ae"], 15, 140, 0.04, 0.12);
 
       // Dark maria — near-charcoal, very high opacity to match real photos
       // Each mare gets 4 heavy passes: base darken + 3 feathered soft layers
@@ -1618,46 +1669,46 @@ function makePlanetTexture(kind, opts = {}) {
       // Fine regolith pitting and albedo variation over the whole surface
       softBlobs(1400, ["#b0aca8", "#747068", "#a4a09c", "#c8c4c0", "#606058"], 2, 28, 0.015, 0.065);
 
-      // Craters — large, medium, micro in 3 passes
-      craters(450, 5, 65);
-      craters(500, 2, 20);
-      craters(900, 1, 7);
+      // Craters — large, medium, micro in 3 passes (kept low so rims don't stack)
+      craters(180, 8, 48);
+      craters(280, 2, 14);
+      craters(700, 1, 5);
 
       // Rayed craters — Tycho, Copernicus, Aristarchus, Kepler
-      const rayedCrater = (cx, cy, r, rayLen, rayCount, brightness = 220) => {
+      const rayedCrater = (cx, cy, r, rayLen, rayCount, brightness = 210) => {
         const B = brightness;
-        // Long bright rays radiate outward first
+        // Rays — thin lines, moderate opacity, fade quickly
         for (let i = 0; i < rayCount; i++) {
-          const a = (i / rayCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
-          const len = rayLen * (0.5 + Math.random() * 0.9);
-          const wid = r * (0.07 + Math.random() * 0.07);
+          const a = (i / rayCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+          const len = rayLen * (0.45 + Math.random() * 0.7);
+          const wid = Math.max(1, r * (0.04 + Math.random() * 0.04));
           const rg = x.createLinearGradient(cx, cy, cx + Math.cos(a) * len, cy + Math.sin(a) * len);
-          rg.addColorStop(0.05, `rgba(${B},${B-5},${B-10},0.55)`);
-          rg.addColorStop(0.40, `rgba(${B},${B-5},${B-10},0.22)`);
-          rg.addColorStop(1,    `rgba(${B},${B-5},${B-10},0)`);
+          rg.addColorStop(0.08, `rgba(${B},${B-4},${B-10},0.38)`);
+          rg.addColorStop(0.35, `rgba(${B},${B-4},${B-10},0.14)`);
+          rg.addColorStop(1,    `rgba(${B},${B-4},${B-10},0)`);
           x.save(); x.strokeStyle = rg; x.lineWidth = wid;
           x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len);
           x.stroke(); x.restore();
         }
-        // Ejecta blanket
-        const eg = x.createRadialGradient(cx, cy, 0, cx, cy, r * 3.0);
-        eg.addColorStop(0,   `rgba(${B},${B-5},${B-10},0.80)`);
-        eg.addColorStop(0.4, `rgba(${B},${B-5},${B-10},0.40)`);
-        eg.addColorStop(0.8, `rgba(${B},${B-5},${B-10},0.12)`);
-        eg.addColorStop(1,   `rgba(${B},${B-5},${B-10},0)`);
-        x.fillStyle = eg; x.beginPath(); x.arc(cx, cy, r * 3.0, 0, Math.PI * 2); x.fill();
-        // Crater bowl (dark center, bright rim)
-        const cg = x.createRadialGradient(cx, cy, r * 0.08, cx, cy, r);
-        cg.addColorStop(0,    "rgba(28,26,24,0.85)");
-        cg.addColorStop(0.55, "rgba(60,58,55,0.15)");
-        cg.addColorStop(0.82, `rgba(${B},${B-5},${B-10},0.65)`);
-        cg.addColorStop(1,    "rgba(120,118,114,0)");
+        // Ejecta blanket — much smaller and less opaque than before
+        const eg = x.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * 2.0);
+        eg.addColorStop(0,   `rgba(${B},${B-4},${B-10},0.38)`);
+        eg.addColorStop(0.5, `rgba(${B},${B-4},${B-10},0.14)`);
+        eg.addColorStop(1,   `rgba(${B},${B-4},${B-10},0)`);
+        x.fillStyle = eg; x.beginPath(); x.arc(cx, cy, r * 2.0, 0, Math.PI * 2); x.fill();
+        // Crater bowl: dark center, subtle bright rim
+        const cg = x.createRadialGradient(cx, cy, r * 0.05, cx, cy, r);
+        cg.addColorStop(0,    "rgba(22,20,18,0.88)");
+        cg.addColorStop(0.60, "rgba(45,43,40,0.20)");
+        cg.addColorStop(0.86, `rgba(${B},${B-4},${B-10},0.45)`);
+        cg.addColorStop(1,    "rgba(100,98,94,0.0)");
         x.fillStyle = cg; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
       };
-      rayedCrater(0.370*s, 0.730*H, 22, 280, 22, 225); // Tycho — bottom, very prominent
-      rayedCrater(0.240*s, 0.470*H, 16, 195, 18, 215); // Copernicus — center-left
-      rayedCrater(0.063*s, 0.430*H, 11, 130, 14, 235); // Aristarchus — far left, brightest spot
-      rayedCrater(0.690*s, 0.295*H, 9,  100, 12, 210); // Kepler
+      // Only Tycho is very prominent; others are more subtle
+      rayedCrater(0.370*s, 0.730*H, 20, 260, 20, 218); // Tycho — bottom
+      rayedCrater(0.240*s, 0.470*H, 14, 160, 14, 208); // Copernicus
+      rayedCrater(0.063*s, 0.430*H, 10, 110, 12, 225); // Aristarchus — bright spot
+      rayedCrater(0.690*s, 0.295*H,  8,  80, 10, 205); // Kepler
       break;
     }
     case "mars": {
