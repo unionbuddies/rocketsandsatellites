@@ -1,10 +1,10 @@
 // ============================================================================
 //  APP  —  hash router + view rendering
 // ============================================================================
-import { SECTIONS, FLAGSHIP } from "./data.js?v=25";
-import { openScene } from "./scene3d.js?v=25";
-import { buildAnatomyViewer } from "./anatomy3d.js?v=25";
-import { getThumbnailURL, createLiveViewer } from "./thumbnail.js?v=25";
+import { SECTIONS, FLAGSHIP } from "./data.js?v=26";
+import { openScene } from "./scene3d.js?v=26";
+import { buildAnatomyViewer } from "./anatomy3d.js?v=26";
+import { getThumbnailURL, createLiveViewer } from "./thumbnail.js?v=26";
 
 let anatomyViewer = null;
 let liveViewer = null;

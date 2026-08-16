@@ -954,8 +954,8 @@ const EARTH_FRAG = `
     // Specular sun glint on ocean surface
     vec3 viewDir = normalize(cameraPosition - vWorld);
     vec3 halfV   = normalize(sun + viewDir);
-    float spec   = pow(max(dot(nrm, halfV), 0.0), 80.0);
-    col += vec3(1.0, 0.97, 0.88) * spec * (1.0 - cloud) * dayAmt * 0.55;
+    float spec   = pow(max(dot(nrm, halfV), 0.0), 50.0);
+    col += vec3(1.0, 0.97, 0.90) * spec * (1.0 - cloud) * dayAmt * 0.85;
 
     // Atmospheric rim glow (blue haze at limb)
     float rim = pow(1.0 - max(dot(nrm, viewDir), 0.0), 4.0);
@@ -1268,22 +1268,21 @@ function makeEarthTextures() {
   const d = day.getContext("2d"), n = night.getContext("2d"),
         c = cloud.getContext("2d"), mk = mask.getContext("2d");
 
-  // --- Ocean: deep cobalt-blue, photographic — matches Blue Marble reference ---
+  // --- Ocean: rich cobalt-blue matching the Blue Marble reference photo ---
   const og = d.createLinearGradient(0, 0, 0, H);
-  og.addColorStop(0,    "#061830");  // polar — very dark navy
-  og.addColorStop(0.12, "#0a2d5c");  // high latitude
-  og.addColorStop(0.30, "#103878");  // mid-latitude
-  og.addColorStop(0.50, "#164898");  // equatorial — rich cobalt, NOT cyan
-  og.addColorStop(0.70, "#103878");
-  og.addColorStop(0.88, "#0a2d5c");
-  og.addColorStop(1.0,  "#061830");
+  og.addColorStop(0,    "#071e42");  // polar — dark navy
+  og.addColorStop(0.12, "#0e3870");  // high latitude
+  og.addColorStop(0.30, "#165298");  // mid-latitude
+  og.addColorStop(0.50, "#1e64b4");  // equatorial — rich cobalt blue
+  og.addColorStop(0.70, "#165298");
+  og.addColorStop(0.88, "#0e3870");
+  og.addColorStop(1.0,  "#071e42");
   d.fillStyle = og; d.fillRect(0, 0, W, H);
-  // Ocean depth variation — subtle darker/lighter patches for realism
-  for (let i = 0; i < 80; i++) {
+  // Ocean depth variation — subtle darker patches
+  for (let i = 0; i < 60; i++) {
     const ox = Math.random() * W, oy = (0.10 + Math.random() * 0.80) * H;
     const r = d.createRadialGradient(ox, oy, 0, ox, oy, 40 + Math.random() * 120);
-    const dark = Math.random() < 0.6;
-    r.addColorStop(0, dark ? "rgba(0,10,30,0.18)" : "rgba(30,70,150,0.12)");
+    r.addColorStop(0, "rgba(0,8,24,0.14)");
     r.addColorStop(1, "rgba(0,0,0,0)");
     d.fillStyle = r; d.fillRect(0, 0, W, H);
   }
@@ -1462,92 +1461,61 @@ function makeEarthTextures() {
   }
   n.globalAlpha = 1;
 
-  // --- Clouds: photo-realistic irregular masses, NO mathematical spirals ---
+  // --- Clouds: irregular masses only — no code that creates visible horizontal lines ---
   c.fillStyle = "#000"; c.fillRect(0, 0, W, H);
 
-  // Irregular cloud mass — realistic satellite-imagery-style cloud system.
-  // Builds a dense cluster of overlapping ellipses with random angles/sizes.
+  // Build a cloud system from a dense cluster of randomly-rotated ellipses.
+  // cx/cy in pixels, rx/ry = half-extents of the cluster, n = blob count.
   const cloudMass = (cx, cy, rx, ry, n, alo, ahi) => {
     for (let i = 0; i < n; i++) {
-      const ox = (Math.random() - 0.5) * rx * 2.4;
-      const oy = (Math.random() - 0.5) * ry * 2.4;
+      const ox = (Math.random() - 0.5) * rx * 2.0;
+      const oy = (Math.random() - 0.5) * ry * 2.0;
       const dist = Math.hypot(ox / rx, oy / ry);
-      if (dist > 1.15) continue;
-      const bw = rx * (0.06 + Math.random() * 0.30);
-      const bh = bw * (0.10 + Math.random() * 0.50);
-      const falloff = Math.max(0, 1 - dist * 0.65);
-      c.globalAlpha = (alo + Math.random() * (ahi - alo)) * falloff;
+      if (dist > 1.0) continue;
+      const bw = rx * (0.08 + Math.random() * 0.26);
+      const bh = bw * (0.12 + Math.random() * 0.48);
+      c.globalAlpha = (alo + Math.random() * (ahi - alo)) * Math.max(0, 1 - dist * 0.55);
       c.fillStyle = "#fff";
       c.save();
       c.translate(cx + ox, cy + oy);
-      c.rotate(Math.random() * Math.PI);
+      c.rotate(Math.random() * Math.PI); // fully random angle — avoids stripes
       c.beginPath(); c.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2); c.fill();
       c.restore();
     }
   };
 
-  // Polar sheet coverage — dense, nearly solid
-  for (let i = 0; i < 220; i++) {
-    const inNorth = Math.random() < 0.5;
-    const yf = inNorth ? Math.random() * 0.10 : (0.90 + Math.random() * 0.10);
+  // Polar coverage
+  for (let i = 0; i < 200; i++) {
+    const north = Math.random() < 0.5;
     c.globalAlpha = 0.45 + Math.random() * 0.50;
     c.fillStyle = "#fff";
     c.beginPath();
-    c.ellipse(Math.random() * W, yf * H,
-      55 + Math.random() * 200, 8 + Math.random() * 22,
+    c.ellipse(
+      Math.random() * W,
+      north ? Math.random() * 0.09 * H : H * (0.91 + Math.random() * 0.09),
+      55 + Math.random() * 190, 9 + Math.random() * 24,
       Math.random() * Math.PI, 0, Math.PI * 2);
     c.fill();
   }
 
-  // Major weather systems — 6 large irregular masses (no spirals)
-  cloudMass(0.09*W,  0.20*H, 130, 62, 140, 0.35, 0.88); // N Pacific low
-  cloudMass(0.93*W,  0.19*H, 115, 55, 110, 0.32, 0.82); // N Pacific (wraps E edge)
-  cloudMass(0.37*W,  0.19*H, 125, 60, 130, 0.38, 0.90); // N Atlantic low
-  cloudMass(0.20*W,  0.75*H, 130, 58, 120, 0.35, 0.85); // S Pacific low
-  cloudMass(0.58*W,  0.80*H, 115, 52, 105, 0.32, 0.82); // S Indian Ocean
-  cloudMass(0.86*W,  0.76*H, 110, 50, 100, 0.30, 0.80); // S Pacific E
+  // 6 major weather systems — fully irregular, no directional bias
+  cloudMass(0.09*W, 0.20*H, 135, 62, 160, 0.38, 0.90);
+  cloudMass(0.92*W, 0.19*H, 118, 56, 135, 0.35, 0.88);
+  cloudMass(0.37*W, 0.19*H, 130, 60, 155, 0.40, 0.92);
+  cloudMass(0.19*W, 0.75*H, 132, 60, 145, 0.38, 0.90);
+  cloudMass(0.58*W, 0.80*H, 120, 54, 125, 0.35, 0.88);
+  cloudMass(0.86*W, 0.76*H, 112, 52, 118, 0.32, 0.86);
 
-  // Mid-latitude frontal bands — long elongated streaks like satellite photos
-  const fronts = [
-    [0.04, 0.185, 0.42, -0.06], [0.50, 0.175, 0.34,  0.04],
-    [0.78, 0.192, 0.26, -0.10], [0.08, 0.790, 0.40,  0.12],
-    [0.52, 0.805, 0.32, -0.08], [0.84, 0.782, 0.20,  0.06],
-  ];
-  for (const [fx, fy, fw, rot] of fronts) {
-    for (let i = 0; i < 40; i++) {
-      const t = Math.random();
-      const px = (fx + t * fw) * W + (Math.random() - 0.5) * 0.018 * W;
-      const py = fy * H + Math.sin(rot) * t * fw * W + (Math.random() - 0.5) * 0.020 * H;
-      if (py < 0 || py > H) continue;
-      c.globalAlpha = Math.sin(t * Math.PI) * (0.25 + Math.random() * 0.45);
-      c.fillStyle = "#fff";
-      c.save(); c.translate(px, py); c.rotate(rot + (Math.random() - 0.5) * 0.35);
-      c.beginPath(); c.ellipse(0, 0, 50 + Math.random() * 160, 7 + Math.random() * 22, 0, 0, Math.PI * 2);
-      c.fill(); c.restore();
-    }
-  }
-
-  // ITCZ — patchy broken band near equator
-  for (let i = 0; i < 90; i++) {
-    c.globalAlpha = 0.18 + Math.random() * 0.42;
+  // Scattered cumulus — fully random position, angle, size
+  for (let i = 0; i < 550; i++) {
+    c.globalAlpha = 0.07 + Math.random() * 0.28;
     c.fillStyle = "#fff";
     c.beginPath();
     c.ellipse(
-      (Math.random() * 1.08 - 0.04) * W,
-      (0.44 + (Math.random() - 0.5) * 0.09) * H,
-      25 + Math.random() * 110, 4 + Math.random() * 14,
-      (Math.random() - 0.5) * 0.45, 0, Math.PI * 2);
-    c.fill();
-  }
-
-  // Scattered cumulus everywhere — smaller, lower opacity
-  for (let i = 0; i < 400; i++) {
-    c.globalAlpha = 0.08 + Math.random() * 0.22;
-    c.fillStyle = "#fff";
-    c.beginPath();
-    c.ellipse(Math.random() * W, Math.random() * H,
-      8 + Math.random() * 50, 3 + Math.random() * 12,
-      (Math.random() - 0.5) * 0.7, 0, Math.PI * 2);
+      Math.random() * W,
+      Math.random() * H,
+      8 + Math.random() * 62, 3 + Math.random() * 16,
+      Math.random() * Math.PI, 0, Math.PI * 2);
     c.fill();
   }
   c.globalAlpha = 1;
