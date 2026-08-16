@@ -1461,64 +1461,54 @@ function makeEarthTextures() {
   }
   n.globalAlpha = 1;
 
-  // --- Clouds: irregular masses only — no code that creates visible horizontal lines ---
+  // --- Clouds: radial-gradient circles — zero directional bias, no horizontal lines ---
   c.fillStyle = "#000"; c.fillRect(0, 0, W, H);
 
-  // Build a cloud system from a dense cluster of randomly-rotated ellipses.
-  // cx/cy in pixels, rx/ry = half-extents of the cluster, n = blob count.
-  const cloudMass = (cx, cy, rx, ry, n, alo, ahi) => {
+  // Soft circular cloud blob via radial gradient — circles have no axis, cannot band.
+  const cloudBlob = (cx, cy, r, alpha) => {
+    const g = c.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0,   `rgba(255,255,255,${Math.min(1, alpha)})`);
+    g.addColorStop(0.45,`rgba(255,255,255,${Math.min(1, alpha * 0.70)})`);
+    g.addColorStop(1,   'rgba(255,255,255,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
+  };
+
+  // Dense cloud system built from many circular blobs at varied offsets.
+  const cloudSystem = (cx, cy, rx, ry, n, rmin, rmax, amin, amax) => {
     for (let i = 0; i < n; i++) {
-      const ox = (Math.random() - 0.5) * rx * 2.0;
-      const oy = (Math.random() - 0.5) * ry * 2.0;
+      const ox = (Math.random() - 0.5) * rx * 2.2;
+      const oy = (Math.random() - 0.5) * ry * 2.2;
+      if (Math.hypot(ox / rx, oy / ry) > 1.0) continue;
+      const r = rmin + Math.random() * (rmax - rmin);
       const dist = Math.hypot(ox / rx, oy / ry);
-      if (dist > 1.0) continue;
-      const bw = rx * (0.08 + Math.random() * 0.26);
-      const bh = bw * (0.12 + Math.random() * 0.48);
-      c.globalAlpha = (alo + Math.random() * (ahi - alo)) * Math.max(0, 1 - dist * 0.55);
-      c.fillStyle = "#fff";
-      c.save();
-      c.translate(cx + ox, cy + oy);
-      c.rotate(Math.random() * Math.PI); // fully random angle — avoids stripes
-      c.beginPath(); c.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2); c.fill();
-      c.restore();
+      cloudBlob(cx + ox, cy + oy, r,
+        (amin + Math.random() * (amax - amin)) * Math.max(0.25, 1 - dist * 0.55));
     }
   };
 
-  // Polar coverage
-  for (let i = 0; i < 200; i++) {
+  // Polar cloud cover — circles spread across full width at top/bottom
+  for (let i = 0; i < 250; i++) {
     const north = Math.random() < 0.5;
-    c.globalAlpha = 0.45 + Math.random() * 0.50;
-    c.fillStyle = "#fff";
-    c.beginPath();
-    c.ellipse(
+    cloudBlob(
       Math.random() * W,
-      north ? Math.random() * 0.09 * H : H * (0.91 + Math.random() * 0.09),
-      55 + Math.random() * 190, 9 + Math.random() * 24,
-      Math.random() * Math.PI, 0, Math.PI * 2);
-    c.fill();
+      north ? Math.random() * 0.10 * H : H * (0.90 + Math.random() * 0.10),
+      18 + Math.random() * 72, 0.38 + Math.random() * 0.52);
   }
 
-  // 6 major weather systems — fully irregular, no directional bias
-  cloudMass(0.09*W, 0.20*H, 135, 62, 160, 0.38, 0.90);
-  cloudMass(0.92*W, 0.19*H, 118, 56, 135, 0.35, 0.88);
-  cloudMass(0.37*W, 0.19*H, 130, 60, 155, 0.40, 0.92);
-  cloudMass(0.19*W, 0.75*H, 132, 60, 145, 0.38, 0.90);
-  cloudMass(0.58*W, 0.80*H, 120, 54, 125, 0.35, 0.88);
-  cloudMass(0.86*W, 0.76*H, 112, 52, 118, 0.32, 0.86);
+  // 6 major weather systems — each at a DIFFERENT latitude so no rings form
+  cloudSystem(0.09*W, 0.20*H, 122, 96, 200, 12, 50, 0.30, 0.86); // N Pacific     20%
+  cloudSystem(0.92*W, 0.34*H, 108, 90, 172, 12, 48, 0.28, 0.82); // N Pacific E   34%
+  cloudSystem(0.37*W, 0.14*H, 118, 94, 188, 12, 50, 0.35, 0.88); // N Atlantic    14%
+  cloudSystem(0.19*W, 0.73*H, 120, 96, 185, 12, 50, 0.32, 0.85); // S Pacific     73%
+  cloudSystem(0.58*W, 0.85*H, 110, 90, 162, 12, 46, 0.30, 0.82); // S Indian      85%
+  cloudSystem(0.86*W, 0.64*H, 106, 88, 155, 12, 46, 0.28, 0.80); // S Pacific E   64%
 
-  // Scattered cumulus — fully random position, angle, size
-  for (let i = 0; i < 550; i++) {
-    c.globalAlpha = 0.07 + Math.random() * 0.28;
-    c.fillStyle = "#fff";
-    c.beginPath();
-    c.ellipse(
-      Math.random() * W,
-      Math.random() * H,
-      8 + Math.random() * 62, 3 + Math.random() * 16,
-      Math.random() * Math.PI, 0, Math.PI * 2);
-    c.fill();
+  // Scattered background cloud — random circles, no pattern
+  for (let i = 0; i < 700; i++) {
+    cloudBlob(
+      Math.random() * W, Math.random() * H,
+      4 + Math.random() * 32, 0.04 + Math.random() * 0.24);
   }
-  c.globalAlpha = 1;
 
   const T = (cv, srgb) => { const t = new THREE.CanvasTexture(cv); t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; t.anisotropy = 8; return t; };
   _earthTex = { day: T(day, true), night: T(night, true), cloud: T(cloud, false) };
