@@ -1268,28 +1268,32 @@ function makeEarthTextures() {
   const d = day.getContext("2d"), n = night.getContext("2d"),
         c = cloud.getContext("2d"), mk = mask.getContext("2d");
 
-  // --- Ocean: rich "Blue Marble" blue — the defining look of Earth from space ---
+  // --- Ocean: vivid "Blue Marble" blue — the defining look of Earth from space ---
   const og = d.createLinearGradient(0, 0, 0, H);
-  og.addColorStop(0,    "#0c3d80");  // polar — slightly darker
-  og.addColorStop(0.20, "#1458a8");  // sub-polar
-  og.addColorStop(0.50, "#1e6ec4");  // equatorial — bright tropical blue
-  og.addColorStop(0.80, "#1458a8");  // sub-polar
-  og.addColorStop(1.0,  "#0c3d80");  // polar
+  og.addColorStop(0,    "#093878");  // polar — deep navy
+  og.addColorStop(0.18, "#1268c8");  // sub-polar
+  og.addColorStop(0.50, "#1a82ec");  // equatorial — vivid saturated tropical blue
+  og.addColorStop(0.82, "#1268c8");  // sub-polar
+  og.addColorStop(1.0,  "#093878");  // polar
   d.fillStyle = og; d.fillRect(0, 0, W, H);
   // subtle ocean depth variation — darker trenches, lighter shallows
   for (let i = 0; i < 60; i++) {
     const ox = Math.random() * W, oy = (0.15 + Math.random() * 0.7) * H;
     const r = d.createRadialGradient(ox, oy, 0, ox, oy, 50 + Math.random() * 100);
-    r.addColorStop(0, "rgba(10,55,130,0.20)"); r.addColorStop(1, "rgba(0,0,0,0)");
+    r.addColorStop(0, "rgba(8,48,128,0.22)"); r.addColorStop(1, "rgba(0,0,0,0)");
     d.fillStyle = r; d.fillRect(0, 0, W, H);
   }
+  // Atlantic Ocean — a touch brighter in the center (reference photo shows brilliant blue)
+  const atlGrad = d.createRadialGradient(0.31*W, 0.48*H, 0, 0.31*W, 0.48*H, 0.22*W);
+  atlGrad.addColorStop(0, "rgba(30,148,255,0.25)"); atlGrad.addColorStop(1, "rgba(0,0,0,0)");
+  d.fillStyle = atlGrad; d.fillRect(0, 0, W, H);
   // Caribbean / Gulf of Mexico teal shallow water
   const caribGrad = d.createRadialGradient(0.22*W, 0.44*H, 0, 0.22*W, 0.44*H, 0.06*W);
-  caribGrad.addColorStop(0, "rgba(0,165,180,0.65)"); caribGrad.addColorStop(1, "rgba(0,0,0,0)");
+  caribGrad.addColorStop(0, "rgba(0,175,195,0.65)"); caribGrad.addColorStop(1, "rgba(0,0,0,0)");
   d.fillStyle = caribGrad; d.fillRect(0, 0, W, H);
   // Mediterranean Sea — slightly greenish
   const medGrad = d.createRadialGradient(0.515*W, 0.34*H, 0, 0.515*W, 0.34*H, 0.025*W);
-  medGrad.addColorStop(0, "rgba(0,120,160,0.55)"); medGrad.addColorStop(1, "rgba(0,0,0,0)");
+  medGrad.addColorStop(0, "rgba(0,130,172,0.55)"); medGrad.addColorStop(1, "rgba(0,0,0,0)");
   d.fillStyle = medGrad; d.fillRect(0, 0, W, H);
 
   n.fillStyle = "#000205"; n.fillRect(0, 0, W, H);
@@ -1346,9 +1350,10 @@ function makeEarthTextures() {
 
   // --- Africa — the dominant feature of the eastern hemisphere ---
   // Sahara: huge tan band across northern Africa (most prominent feature)
-  blob(d,  0.508*W, 0.385*H, 0.085*W, 0.090*H, "#c8933a", 12);  // Sahara base
-  blob(d,  0.508*W, 0.385*H, 0.068*W, 0.070*H, "#d4a040", 12.5);// Sahara lighter core
-  blob(d,  0.508*W, 0.385*H, 0.042*W, 0.042*H, "#dca84a", 13);  // Sahara bright center
+  blob(d,  0.505*W, 0.380*H, 0.095*W, 0.098*H, "#cc9030", 12);  // Sahara wide fringe
+  blob(d,  0.508*W, 0.382*H, 0.080*W, 0.085*H, "#d49a38", 12.5);// Sahara base
+  blob(d,  0.508*W, 0.382*H, 0.062*W, 0.065*H, "#e0a840", 13);  // Sahara lighter core
+  blob(d,  0.510*W, 0.378*H, 0.038*W, 0.040*H, "#eab848", 13.5);// Sahara bright golden center
   // Sub-Saharan Africa (green)
   blob(d,  0.518*W, 0.555*H, 0.062*W, 0.095*H, "#2a5820", 14);
   blob(d,  0.518*W, 0.555*H, 0.042*W, 0.065*H, "#346828", 14.5);
@@ -1617,98 +1622,116 @@ function makePlanetTexture(kind, opts = {}) {
   switch (kind) {
     case "moon": {
       // Highland base — warm medium gray matching real lunar photos (not cool gray)
-      fill("#8c8880");
-      // Highland variation — lighter peaks, warm tone, slightly darker troughs
-      softBlobs(300, ["#a8a49e", "#726e68", "#c4c0ba", "#6a6660", "#b8b4ae"], 15, 140, 0.04, 0.12);
+      // Highland base — warm light gray matching real lunar photos
+      fill("#b4b0a8");
+      // Rich highland albedo variation: lighter peaks, warm troughs, mottled
+      softBlobs(500, ["#c8c4bc", "#8a8680", "#d4d0c8", "#787470", "#c0bcb4", "#6e6a64"], 8, 110, 0.03, 0.10);
+      // Subtle warm-brown tints in highland regions
+      softBlobs(80,  ["#c8b898", "#bca888", "#d0c0a0"], 40, 180, 0.04, 0.08);
 
-      // Dark maria — near-charcoal, very high opacity to match real photos
-      // Each mare gets 4 heavy passes: base darken + 3 feathered soft layers
-      const darkMare = (cx, cy, rx, ry, rot) => {
-        // Hard-fill pass — deepest darkness
-        x.globalAlpha = 0.90; x.fillStyle = "#1e1c1a";
+      // Maria — medium-dark gray (like real photos — NOT near-black)
+      // Real maria are roughly 40-45% gray vs 65-70% for highlands
+      const darkMare = (cx, cy, rx, ry, rot, col = "#3c3830") => {
+        // Core fill — medium-dark, feathered
+        x.globalAlpha = 0.68; x.fillStyle = col;
         x.beginPath(); x.ellipse(cx, cy, rx, ry, rot, 0, Math.PI * 2); x.fill();
-        // Slight color variation inside mare
-        x.globalAlpha = 0.25; x.fillStyle = "#282420";
-        x.beginPath(); x.ellipse(cx, cy, rx * 0.7, ry * 0.7, rot, 0, Math.PI * 2); x.fill();
-        // Soft feathered outer edge
-        for (let pass = 1; pass <= 3; pass++) {
-          const sc = 1 + pass * 0.22;
-          x.globalAlpha = 0.55 / pass;
-          x.fillStyle = "#1a1816";
-          x.beginPath(); x.ellipse(cx, cy, rx * sc, ry * sc, rot, 0, Math.PI * 2); x.fill();
-        }
+        // Slight darker patch near center
+        x.globalAlpha = 0.22; x.fillStyle = "#2e2c28";
+        x.beginPath(); x.ellipse(cx, cy, rx * 0.55, ry * 0.55, rot, 0, Math.PI * 2); x.fill();
+        // Very soft outer feathering — 2 passes
+        x.globalAlpha = 0.35; x.fillStyle = col;
+        x.beginPath(); x.ellipse(cx, cy, rx * 1.20, ry * 1.20, rot, 0, Math.PI * 2); x.fill();
+        x.globalAlpha = 0.15; x.fillStyle = col;
+        x.beginPath(); x.ellipse(cx, cy, rx * 1.45, ry * 1.45, rot, 0, Math.PI * 2); x.fill();
         x.globalAlpha = 1;
       };
 
-      // Oceanus Procellarum — huge, covers entire left third of the nearside
-      darkMare(0.08 * s, 0.50 * H, 0.195 * s, 0.295 * H, 0.15);
-      // Additional northern lobe of Procellarum
-      darkMare(0.10 * s, 0.30 * H, 0.100 * s, 0.120 * H, 0.10);
-
-      // Mare Imbrium — large circular dark sea, upper left
-      darkMare(0.175 * s, 0.36 * H, 0.105 * s, 0.095 * H, 0.30);
-      // Mare Serenitatis — distinct oval, right of Imbrium
-      darkMare(0.330 * s, 0.335*H, 0.075 * s, 0.078 * H, 0.50);
-      // Mare Tranquillitatis — irregular, below Serenitatis
-      darkMare(0.355 * s, 0.435*H, 0.090 * s, 0.072 * H, -0.25);
-      // Mare Crisium — isolated oval, right edge
-      darkMare(0.655 * s, 0.400*H, 0.052 * s, 0.060 * H, 0.10);
-      // Mare Nubium — below center
-      darkMare(0.260 * s, 0.560*H, 0.068 * s, 0.050 * H, 0.40);
-      // Mare Humorum — left-center bottom
-      darkMare(0.155 * s, 0.575*H, 0.058 * s, 0.042 * H, -0.10);
-      // Mare Vaporum — small, center
-      darkMare(0.300 * s, 0.455*H, 0.040 * s, 0.038 * H, 0.20);
-      // Mare Nectaris — small, lower right of center
-      darkMare(0.440 * s, 0.510*H, 0.042 * s, 0.036 * H, 0.60);
-      // Mare Frigoris — thin horizontal band across top
-      x.globalAlpha = 0.80; x.fillStyle = "#201e1c";
-      x.beginPath(); x.ellipse(0.30 * s, 0.255*H, 0.200 * s, 0.030 * H, 0.05, 0, Math.PI * 2); x.fill();
+      // ---- Nearside maria (left half of texture, x < 0.5) ----
+      // Oceanus Procellarum — enormous, left third; slightly bluish-gray like real photos
+      darkMare(0.08*s, 0.50*H, 0.195*s, 0.295*H, 0.15, "#3a3c38");
+      darkMare(0.10*s, 0.30*H, 0.100*s, 0.120*H, 0.10, "#3a3c38");
+      // Mare Imbrium — large, slightly bluer tone
+      darkMare(0.175*s, 0.36*H, 0.105*s, 0.095*H, 0.30, "#383c3a");
+      // Mare Serenitatis
+      darkMare(0.330*s, 0.335*H, 0.075*s, 0.078*H, 0.50, "#3c3a36");
+      // Mare Tranquillitatis — slightly darker/bluer (Apollo 11 landing site)
+      darkMare(0.355*s, 0.435*H, 0.090*s, 0.072*H, -0.25, "#363840");
+      // Mare Crisium — isolated oval
+      darkMare(0.655*s, 0.400*H, 0.052*s, 0.060*H, 0.10, "#3e3c38");
+      // Mare Nubium
+      darkMare(0.260*s, 0.560*H, 0.068*s, 0.050*H, 0.40, "#3a3832");
+      // Mare Humorum
+      darkMare(0.155*s, 0.575*H, 0.058*s, 0.042*H, -0.10, "#3c3a34");
+      // Mare Vaporum — small center
+      darkMare(0.300*s, 0.455*H, 0.040*s, 0.038*H, 0.20, "#3e3c38");
+      // Mare Nectaris
+      darkMare(0.440*s, 0.510*H, 0.042*s, 0.036*H, 0.60, "#3a3832");
+      // Mare Frigoris — thin horizontal strip
+      x.globalAlpha = 0.55; x.fillStyle = "#3a3830";
+      x.beginPath(); x.ellipse(0.30*s, 0.255*H, 0.200*s, 0.025*H, 0.05, 0, Math.PI * 2); x.fill();
       x.globalAlpha = 1;
 
-      // Fine regolith pitting and albedo variation over the whole surface
-      softBlobs(1400, ["#b0aca8", "#747068", "#a4a09c", "#c8c4c0", "#606058"], 2, 28, 0.015, 0.065);
+      // Fine regolith grain — mottled, varied albedo patches
+      softBlobs(1800, ["#c0bcb6", "#807c76", "#b0aca6", "#d0ccc6", "#686460", "#a8a49e"], 2, 24, 0.012, 0.055);
 
-      // Craters — large, medium, micro in 3 passes (kept low so rims don't stack)
-      craters(180, 8, 48);
-      craters(280, 2, 14);
-      craters(700, 1, 5);
+      // ---- Cratering ----
+      // Nearside: moderate density
+      craters(160, 8, 45);
+      craters(250, 2, 12);
+      // Farside (right half, x > 0.5): extra craters — more heavily cratered
+      const savedRng = Math.random;
+      for (let i = 0; i < 120; i++) {
+        const cr = 5 + Math.random() * 40;
+        const cx = (0.5 + Math.random() * 0.5) * s;
+        const cy = Math.random() * H;
+        // Dark bowl
+        const bowl = x.createRadialGradient(cx, cy, 0, cx, cy, cr);
+        bowl.addColorStop(0,    "rgba(18,16,14,0.55)");
+        bowl.addColorStop(0.50, "rgba(28,26,22,0.22)");
+        bowl.addColorStop(0.82, "rgba(42,40,36,0.06)");
+        bowl.addColorStop(1,    "rgba(0,0,0,0)");
+        x.fillStyle = bowl; x.beginPath(); x.arc(cx, cy, cr, 0, Math.PI * 2); x.fill();
+        if (cr > 10) {
+          const rim = x.createRadialGradient(cx, cy, cr * 0.82, cx, cy, cr * 1.04);
+          rim.addColorStop(0, "rgba(185,180,172,0.0)"); rim.addColorStop(0.75, "rgba(185,180,172,0.0)");
+          rim.addColorStop(0.92, "rgba(185,180,172,0.11)"); rim.addColorStop(1, "rgba(0,0,0,0)");
+          x.fillStyle = rim; x.beginPath(); x.arc(cx, cy, cr * 1.04, 0, Math.PI * 2); x.fill();
+        }
+      }
+      craters(600, 1, 5); // micro-pitting everywhere
 
-      // Rayed craters — Tycho, Copernicus, Aristarchus, Kepler
-      const rayedCrater = (cx, cy, r, rayLen, rayCount, brightness = 210) => {
-        const B = brightness;
-        // Rays — thin lines, moderate opacity, fade quickly
+      // ---- Rayed craters ----
+      const rayedCrater = (cx, cy, r, rayLen, rayCount, B = 210) => {
         for (let i = 0; i < rayCount; i++) {
-          const a = (i / rayCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-          const len = rayLen * (0.45 + Math.random() * 0.7);
-          const wid = Math.max(1, r * (0.04 + Math.random() * 0.04));
+          const a = (i / rayCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.45;
+          const len = rayLen * (0.4 + Math.random() * 0.8);
+          const wid = Math.max(1.5, r * (0.035 + Math.random() * 0.035));
           const rg = x.createLinearGradient(cx, cy, cx + Math.cos(a) * len, cy + Math.sin(a) * len);
-          rg.addColorStop(0.08, `rgba(${B},${B-4},${B-10},0.38)`);
-          rg.addColorStop(0.35, `rgba(${B},${B-4},${B-10},0.14)`);
-          rg.addColorStop(1,    `rgba(${B},${B-4},${B-10},0)`);
+          rg.addColorStop(0.05, `rgba(${B},${B-3},${B-8},0.32)`);
+          rg.addColorStop(0.30, `rgba(${B},${B-3},${B-8},0.12)`);
+          rg.addColorStop(1,    `rgba(${B},${B-3},${B-8},0)`);
           x.save(); x.strokeStyle = rg; x.lineWidth = wid;
           x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len);
           x.stroke(); x.restore();
         }
-        // Ejecta blanket — much smaller and less opaque than before
-        const eg = x.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * 2.0);
-        eg.addColorStop(0,   `rgba(${B},${B-4},${B-10},0.38)`);
-        eg.addColorStop(0.5, `rgba(${B},${B-4},${B-10},0.14)`);
-        eg.addColorStop(1,   `rgba(${B},${B-4},${B-10},0)`);
-        x.fillStyle = eg; x.beginPath(); x.arc(cx, cy, r * 2.0, 0, Math.PI * 2); x.fill();
-        // Crater bowl: dark center, subtle bright rim
+        // Ejecta blanket — subtle
+        const eg = x.createRadialGradient(cx, cy, r * 0.9, cx, cy, r * 1.8);
+        eg.addColorStop(0,   `rgba(${B},${B-3},${B-8},0.30)`);
+        eg.addColorStop(0.6, `rgba(${B},${B-3},${B-8},0.10)`);
+        eg.addColorStop(1,   `rgba(${B},${B-3},${B-8},0)`);
+        x.fillStyle = eg; x.beginPath(); x.arc(cx, cy, r * 1.8, 0, Math.PI * 2); x.fill();
+        // Bowl with rim
         const cg = x.createRadialGradient(cx, cy, r * 0.05, cx, cy, r);
-        cg.addColorStop(0,    "rgba(22,20,18,0.88)");
-        cg.addColorStop(0.60, "rgba(45,43,40,0.20)");
-        cg.addColorStop(0.86, `rgba(${B},${B-4},${B-10},0.45)`);
-        cg.addColorStop(1,    "rgba(100,98,94,0.0)");
+        cg.addColorStop(0,    "rgba(25,22,20,0.85)");
+        cg.addColorStop(0.58, "rgba(50,48,44,0.18)");
+        cg.addColorStop(0.84, `rgba(${B},${B-3},${B-8},0.40)`);
+        cg.addColorStop(1,    "rgba(110,106,100,0.0)");
         x.fillStyle = cg; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
       };
-      // Only Tycho is very prominent; others are more subtle
-      rayedCrater(0.370*s, 0.730*H, 20, 260, 20, 218); // Tycho — bottom
-      rayedCrater(0.240*s, 0.470*H, 14, 160, 14, 208); // Copernicus
-      rayedCrater(0.063*s, 0.430*H, 10, 110, 12, 225); // Aristarchus — bright spot
-      rayedCrater(0.690*s, 0.295*H,  8,  80, 10, 205); // Kepler
+      rayedCrater(0.370*s, 0.730*H, 18, 230, 20, 218); // Tycho
+      rayedCrater(0.240*s, 0.470*H, 13, 150, 14, 208); // Copernicus
+      rayedCrater(0.063*s, 0.430*H, 10,  95, 12, 228); // Aristarchus
+      rayedCrater(0.690*s, 0.295*H,  8,  70, 10, 205); // Kepler
       break;
     }
     case "mars": {
