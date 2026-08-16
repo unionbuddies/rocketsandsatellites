@@ -926,8 +926,8 @@ const EARTH_FRAG = `
     vec3 nrm = normalize(vNormal);
     vec3 sun = normalize(sunDir);
     float lambert = dot(nrm, sun);
-    // smooth day/night blend — sharper terminator than before
-    float dayAmt = smoothstep(-0.06, 0.18, lambert);
+    // wide gradual terminator — natural fade from day to night
+    float dayAmt = smoothstep(-0.22, 0.38, lambert);
 
     vec3 day   = texture2D(dayTex, vUv).rgb;
     vec3 night = texture2D(nightTex, vUv).rgb;
@@ -951,11 +951,11 @@ const EARTH_FRAG = `
 
     vec3 col = mix(nightCol, dayLand, dayAmt);
 
-    // Specular sun glint on ocean surface
+    // Specular sun glint on ocean surface — tighter, not overwhelming
     vec3 viewDir = normalize(cameraPosition - vWorld);
     vec3 halfV   = normalize(sun + viewDir);
-    float spec   = pow(max(dot(nrm, halfV), 0.0), 50.0);
-    col += vec3(1.0, 0.97, 0.90) * spec * (1.0 - cloud) * dayAmt * 0.85;
+    float spec   = pow(max(dot(nrm, halfV), 0.0), 70.0);
+    col += vec3(1.0, 0.97, 0.90) * spec * (1.0 - cloud) * dayAmt * 0.60;
 
     // Atmospheric rim glow (blue haze at limb)
     float rim = pow(1.0 - max(dot(nrm, viewDir), 0.0), 4.0);
@@ -1417,6 +1417,36 @@ function makeEarthTextures() {
   blob(d,  0.373*W, 0.14 *H, 0.028*W, 0.032*H, "#aabcd8", 27);
   blob(mk, 0.373*W, 0.14 *H, 0.028*W, 0.032*H, "#fff", 27);
 
+  // --- Terrain variation: mottled albedo patches for photographic realism ---
+  // Subtle radial darkening/brightening passes break up the flat-blob look
+  // and simulate elevation, soil type, and vegetation patchwork.
+  d.globalAlpha = 1;
+  for (let i = 0; i < 700; i++) {
+    const lx = Math.random() * W;
+    const ly = (0.04 + Math.random() * 0.92) * H;
+    const r  = 8 + Math.random() * 90;
+    const tg = d.createRadialGradient(lx, ly, 0, lx, ly, r);
+    if (Math.random() < 0.55) {
+      const da = 0.03 + Math.random() * 0.11;
+      tg.addColorStop(0, `rgba(0,0,0,${da})`); tg.addColorStop(1, "rgba(0,0,0,0)");
+    } else {
+      const la = 0.02 + Math.random() * 0.06;
+      tg.addColorStop(0, `rgba(255,255,255,${la})`); tg.addColorStop(1, "rgba(255,255,255,0)");
+    }
+    d.fillStyle = tg; d.beginPath(); d.arc(lx, ly, r, 0, Math.PI * 2); d.fill();
+  }
+  // Extra fine-grain pass for forest/desert texture
+  for (let i = 0; i < 800; i++) {
+    const lx = Math.random() * W;
+    const ly = (0.08 + Math.random() * 0.84) * H;
+    const r  = 3 + Math.random() * 22;
+    const tg = d.createRadialGradient(lx, ly, 0, lx, ly, r);
+    const da = 0.02 + Math.random() * 0.07;
+    tg.addColorStop(0, Math.random() < 0.5 ? `rgba(0,0,0,${da})` : `rgba(255,255,255,${da * 0.6})`);
+    tg.addColorStop(1, "rgba(0,0,0,0)");
+    d.fillStyle = tg; d.beginPath(); d.arc(lx, ly, r, 0, Math.PI * 2); d.fill();
+  }
+
   // --- Polar ice caps ---
   d.globalAlpha = 1; d.fillStyle = "#c8ddf0";
   d.fillRect(0, 0, W, H * 0.038);
@@ -1486,13 +1516,13 @@ function makeEarthTextures() {
     }
   };
 
-  // Polar cloud cover — circles spread across full width at top/bottom
-  for (let i = 0; i < 250; i++) {
+  // Polar cloud cover — spread wide, low opacity to avoid starburst
+  for (let i = 0; i < 120; i++) {
     const north = Math.random() < 0.5;
     cloudBlob(
       Math.random() * W,
-      north ? Math.random() * 0.10 * H : H * (0.90 + Math.random() * 0.10),
-      18 + Math.random() * 72, 0.38 + Math.random() * 0.52);
+      north ? Math.random() * 0.11 * H : H * (0.89 + Math.random() * 0.11),
+      14 + Math.random() * 55, 0.18 + Math.random() * 0.32);
   }
 
   // 6 major weather systems — each at a DIFFERENT latitude so no rings form
