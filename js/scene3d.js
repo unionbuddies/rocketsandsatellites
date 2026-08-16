@@ -1268,32 +1268,32 @@ function makeEarthTextures() {
   const d = day.getContext("2d"), n = night.getContext("2d"),
         c = cloud.getContext("2d"), mk = mask.getContext("2d");
 
-  // --- Ocean: vivid "Blue Marble" blue — the defining look of Earth from space ---
+  // --- Ocean: deep cobalt-blue, photographic — matches Blue Marble reference ---
   const og = d.createLinearGradient(0, 0, 0, H);
-  og.addColorStop(0,    "#093878");  // polar — deep navy
-  og.addColorStop(0.18, "#1268c8");  // sub-polar
-  og.addColorStop(0.50, "#1a82ec");  // equatorial — vivid saturated tropical blue
-  og.addColorStop(0.82, "#1268c8");  // sub-polar
-  og.addColorStop(1.0,  "#093878");  // polar
+  og.addColorStop(0,    "#061830");  // polar — very dark navy
+  og.addColorStop(0.12, "#0a2d5c");  // high latitude
+  og.addColorStop(0.30, "#103878");  // mid-latitude
+  og.addColorStop(0.50, "#164898");  // equatorial — rich cobalt, NOT cyan
+  og.addColorStop(0.70, "#103878");
+  og.addColorStop(0.88, "#0a2d5c");
+  og.addColorStop(1.0,  "#061830");
   d.fillStyle = og; d.fillRect(0, 0, W, H);
-  // subtle ocean depth variation — darker trenches, lighter shallows
-  for (let i = 0; i < 60; i++) {
-    const ox = Math.random() * W, oy = (0.15 + Math.random() * 0.7) * H;
-    const r = d.createRadialGradient(ox, oy, 0, ox, oy, 50 + Math.random() * 100);
-    r.addColorStop(0, "rgba(8,48,128,0.22)"); r.addColorStop(1, "rgba(0,0,0,0)");
+  // Ocean depth variation — subtle darker/lighter patches for realism
+  for (let i = 0; i < 80; i++) {
+    const ox = Math.random() * W, oy = (0.10 + Math.random() * 0.80) * H;
+    const r = d.createRadialGradient(ox, oy, 0, ox, oy, 40 + Math.random() * 120);
+    const dark = Math.random() < 0.6;
+    r.addColorStop(0, dark ? "rgba(0,10,30,0.18)" : "rgba(30,70,150,0.12)");
+    r.addColorStop(1, "rgba(0,0,0,0)");
     d.fillStyle = r; d.fillRect(0, 0, W, H);
   }
-  // Atlantic Ocean — a touch brighter in the center (reference photo shows brilliant blue)
-  const atlGrad = d.createRadialGradient(0.31*W, 0.48*H, 0, 0.31*W, 0.48*H, 0.22*W);
-  atlGrad.addColorStop(0, "rgba(30,148,255,0.25)"); atlGrad.addColorStop(1, "rgba(0,0,0,0)");
-  d.fillStyle = atlGrad; d.fillRect(0, 0, W, H);
-  // Caribbean / Gulf of Mexico teal shallow water
-  const caribGrad = d.createRadialGradient(0.22*W, 0.44*H, 0, 0.22*W, 0.44*H, 0.06*W);
-  caribGrad.addColorStop(0, "rgba(0,175,195,0.65)"); caribGrad.addColorStop(1, "rgba(0,0,0,0)");
+  // Caribbean teal shallows
+  const caribGrad = d.createRadialGradient(0.215*W, 0.435*H, 0, 0.215*W, 0.435*H, 0.055*W);
+  caribGrad.addColorStop(0, "rgba(0,140,168,0.55)"); caribGrad.addColorStop(1, "rgba(0,0,0,0)");
   d.fillStyle = caribGrad; d.fillRect(0, 0, W, H);
-  // Mediterranean Sea — slightly greenish
-  const medGrad = d.createRadialGradient(0.515*W, 0.34*H, 0, 0.515*W, 0.34*H, 0.025*W);
-  medGrad.addColorStop(0, "rgba(0,130,172,0.55)"); medGrad.addColorStop(1, "rgba(0,0,0,0)");
+  // Mediterranean — darker, slightly different hue
+  const medGrad = d.createRadialGradient(0.518*W, 0.335*H, 0, 0.518*W, 0.335*H, 0.030*W);
+  medGrad.addColorStop(0, "rgba(10,60,130,0.50)"); medGrad.addColorStop(1, "rgba(0,0,0,0)");
   d.fillStyle = medGrad; d.fillRect(0, 0, W, H);
 
   n.fillStyle = "#000205"; n.fillRect(0, 0, W, H);
@@ -1342,30 +1342,45 @@ function makeEarthTextures() {
   blob(d,  0.235*W, 0.74*H,  0.012*W, 0.058*H, "#7a6038", 9);
   blob(mk, 0.255*W, 0.66*H,  0.042*W, 0.125*H, "#fff", 7);
 
-  // --- Europe ---
-  blob(d,  0.490*W, 0.275*H, 0.040*W, 0.052*H, "#5a5030", 10);
-  blob(d,  0.490*W, 0.275*H, 0.034*W, 0.044*H, "#3a6030", 10.5);
-  blob(d,  0.490*W, 0.275*H, 0.020*W, 0.025*H, "#4a7038", 11);
-  blob(mk, 0.490*W, 0.275*H, 0.040*W, 0.052*H, "#fff", 10);
+  // --- Europe — rich forest/farmland green matching reference photo ---
+  blob(d,  0.488*W, 0.270*H, 0.044*W, 0.056*H, "#4a5c28", 10);   // outer fringe
+  blob(d,  0.488*W, 0.268*H, 0.036*W, 0.046*H, "#3a6428", 10.5); // main land
+  blob(d,  0.486*W, 0.265*H, 0.022*W, 0.028*H, "#4a7432", 11);   // interior highlands
+  // Iberian Peninsula — slightly browner/drier
+  blob(d,  0.460*W, 0.310*H, 0.018*W, 0.028*H, "#7a7040", 11.5);
+  blob(d,  0.460*W, 0.310*H, 0.012*W, 0.018*H, "#6a6838", 12);
+  blob(mk, 0.488*W, 0.270*H, 0.044*W, 0.056*H, "#fff", 10);
+  blob(mk, 0.460*W, 0.310*H, 0.018*W, 0.028*H, "#fff", 11.5);
 
-  // --- Africa — the dominant feature of the eastern hemisphere ---
-  // Sahara: huge tan band across northern Africa (most prominent feature)
-  blob(d,  0.505*W, 0.380*H, 0.095*W, 0.098*H, "#cc9030", 12);  // Sahara wide fringe
-  blob(d,  0.508*W, 0.382*H, 0.080*W, 0.085*H, "#d49a38", 12.5);// Sahara base
-  blob(d,  0.508*W, 0.382*H, 0.062*W, 0.065*H, "#e0a840", 13);  // Sahara lighter core
-  blob(d,  0.510*W, 0.378*H, 0.038*W, 0.040*H, "#eab848", 13.5);// Sahara bright golden center
-  // Sub-Saharan Africa (green)
-  blob(d,  0.518*W, 0.555*H, 0.062*W, 0.095*H, "#2a5820", 14);
-  blob(d,  0.518*W, 0.555*H, 0.042*W, 0.065*H, "#346828", 14.5);
-  // Horn of Africa / East Africa (drier)
-  blob(d,  0.565*W, 0.505*H, 0.025*W, 0.042*H, "#8c7038", 15);
+  // --- Africa — Sahara is THE dominant visual feature ---
+  // Sahara: sandy/beige — reference shows warm sandy tan, NOT orange
+  blob(d,  0.502*W, 0.385*H, 0.100*W, 0.105*H, "#b89858", 13);   // Sahara outer fringe
+  blob(d,  0.505*W, 0.382*H, 0.085*W, 0.090*H, "#c4a860", 13.5); // Sahara main body
+  blob(d,  0.508*W, 0.376*H, 0.068*W, 0.070*H, "#d0b468", 14);   // Sahara core
+  blob(d,  0.510*W, 0.370*H, 0.045*W, 0.048*H, "#d8bc70", 14.5); // Sahara bright center
+  // West Africa coast (green)
+  blob(d,  0.480*W, 0.480*H, 0.032*W, 0.045*H, "#2c6020", 15);
+  blob(d,  0.480*W, 0.480*H, 0.020*W, 0.028*H, "#387028", 15.5);
+  // Sub-Saharan / Central Africa (deep tropical green)
+  blob(d,  0.515*W, 0.560*H, 0.065*W, 0.100*H, "#265418", 16);
+  blob(d,  0.515*W, 0.558*H, 0.048*W, 0.072*H, "#306020", 16.5);
+  blob(d,  0.515*W, 0.555*H, 0.030*W, 0.045*H, "#3a7028", 17);
+  // Horn of Africa / East Africa (dry brown)
+  blob(d,  0.562*W, 0.510*H, 0.028*W, 0.044*H, "#8c7838", 18);
+  blob(d,  0.562*W, 0.510*H, 0.018*W, 0.028*H, "#a08848", 18.5);
+  // Southern Africa (mixed green/brown)
+  blob(d,  0.525*W, 0.680*H, 0.040*W, 0.060*H, "#4a6828", 19);
+  blob(d,  0.525*W, 0.680*H, 0.025*W, 0.038*H, "#5a7830", 19.5);
   // Arabian peninsula (desert tan)
-  blob(d,  0.600*W, 0.385*H, 0.040*W, 0.060*H, "#c08838", 16);
-  blob(d,  0.600*W, 0.385*H, 0.024*W, 0.035*H, "#cca042", 16.5);
+  blob(d,  0.605*W, 0.388*H, 0.042*W, 0.062*H, "#b89858", 20);
+  blob(d,  0.605*W, 0.388*H, 0.026*W, 0.038*H, "#c4a860", 20.5);
   // Mask all of Africa + Arabia
-  blob(mk, 0.508*W, 0.385*H, 0.085*W, 0.090*H, "#fff", 12);
-  blob(mk, 0.518*W, 0.555*H, 0.062*W, 0.095*H, "#fff", 14);
-  blob(mk, 0.600*W, 0.385*H, 0.040*W, 0.060*H, "#fff", 16);
+  blob(mk, 0.505*W, 0.382*H, 0.100*W, 0.105*H, "#fff", 13);
+  blob(mk, 0.480*W, 0.480*H, 0.032*W, 0.045*H, "#fff", 15);
+  blob(mk, 0.515*W, 0.560*H, 0.065*W, 0.100*H, "#fff", 16);
+  blob(mk, 0.562*W, 0.510*H, 0.028*W, 0.044*H, "#fff", 18);
+  blob(mk, 0.525*W, 0.680*H, 0.040*W, 0.060*H, "#fff", 19);
+  blob(mk, 0.605*W, 0.388*H, 0.042*W, 0.062*H, "#fff", 20);
 
   // --- Asia (huge landmass) ---
   blob(d,  0.695*W, 0.305*H, 0.125*W, 0.115*H, "#5a5028", 17);   // coast fringe
@@ -1447,71 +1462,93 @@ function makeEarthTextures() {
   }
   n.globalAlpha = 1;
 
-  // --- Clouds: bright white, dramatic spiraling masses ---
+  // --- Clouds: photo-realistic irregular masses, NO mathematical spirals ---
   c.fillStyle = "#000"; c.fillRect(0, 0, W, H);
 
-  // Large storm spiral helper — looks like real satellite imagery
-  const stormSpiral = (cx, cy, dir = 1) => {
-    // Opaque dense core
-    c.globalAlpha = 0.75; c.fillStyle = "#fff";
-    c.beginPath(); c.ellipse(cx, cy, 18, 18, 0, 0, Math.PI * 2); c.fill();
-    // Spiral arms
-    for (let arm = 0; arm < 3; arm++) {
-      const startA = (arm / 3) * Math.PI * 2;
-      for (let t = 0; t < 1.0; t += 0.025) {
-        const r = 14 + t * 180;
-        const a = startA + dir * t * Math.PI * 2.8;
-        const bw = 22 + t * 40;
-        const bh = 6 + t * 12;
-        c.globalAlpha = Math.max(0, 0.72 - t * 0.72);
-        c.fillStyle = "#fff";
-        c.save(); c.translate(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.6);
-        c.rotate(a + (dir > 0 ? 0.5 : -0.5));
-        c.beginPath(); c.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2); c.fill();
-        c.restore();
-      }
+  // Irregular cloud mass — realistic satellite-imagery-style cloud system.
+  // Builds a dense cluster of overlapping ellipses with random angles/sizes.
+  const cloudMass = (cx, cy, rx, ry, n, alo, ahi) => {
+    for (let i = 0; i < n; i++) {
+      const ox = (Math.random() - 0.5) * rx * 2.4;
+      const oy = (Math.random() - 0.5) * ry * 2.4;
+      const dist = Math.hypot(ox / rx, oy / ry);
+      if (dist > 1.15) continue;
+      const bw = rx * (0.06 + Math.random() * 0.30);
+      const bh = bw * (0.10 + Math.random() * 0.50);
+      const falloff = Math.max(0, 1 - dist * 0.65);
+      c.globalAlpha = (alo + Math.random() * (ahi - alo)) * falloff;
+      c.fillStyle = "#fff";
+      c.save();
+      c.translate(cx + ox, cy + oy);
+      c.rotate(Math.random() * Math.PI);
+      c.beginPath(); c.ellipse(0, 0, bw, bh, 0, 0, Math.PI * 2); c.fill();
+      c.restore();
     }
-    c.globalAlpha = 1;
   };
 
-  // Frontal cloud band helper (elongated streaks)
-  const cloudFront = (y, xStart, xEnd, width, opacity) => {
-    c.globalAlpha = opacity; c.fillStyle = "#fff";
-    c.beginPath(); c.ellipse((xStart + xEnd) / 2, y, (xEnd - xStart) / 2, width / 2, 0, 0, Math.PI * 2);
-    c.fill(); c.globalAlpha = 1;
-  };
-
-  // Place 6 large storm systems
-  stormSpiral(0.08*W,  0.22*H, -1);  // N Pacific
-  stormSpiral(0.92*W,  0.22*H,  1);  // N Pacific east wraparound
-  stormSpiral(0.38*W,  0.20*H, -1);  // N Atlantic
-  stormSpiral(0.18*W,  0.73*H,  1);  // S Pacific
-  stormSpiral(0.55*W,  0.78*H,  1);  // Indian Ocean
-  stormSpiral(0.85*W,  0.75*H,  1);  // S Pacific east
-
-  // ITCZ — broad tropical convergence zone, high opacity broken band
-  for (let i = 0; i < 80; i++) {
-    c.globalAlpha = 0.35 + Math.random() * 0.40;
-    c.fillStyle = "#fff";
-    const cx = Math.random() * W * 1.1 - 0.05 * W;
-    const cy = (0.440 + Math.random() * 0.12) * H;
-    c.beginPath(); c.ellipse(cx, cy, 50 + Math.random() * 130, 6 + Math.random() * 14, (Math.random() - 0.5) * 0.5, 0, Math.PI * 2); c.fill();
-  }
-
-  // Mid-latitude frontal systems — long bright streaks
-  for (let i = 0; i < 14; i++) {
-    const fy = (0.15 + Math.random() * 0.22) * H * (Math.random() < 0.5 ? 1 : (H / (0.37 * H)));
-    c.globalAlpha = 0.30 + Math.random() * 0.35;
-    c.fillStyle = "#fff";
-    const fx = Math.random() * W, fw = 100 + Math.random() * 300;
-    c.beginPath(); c.ellipse(fx, Math.min(H - 10, Math.max(10, fy)), fw, 8 + Math.random() * 20, (Math.random() - 0.5) * 0.8, 0, Math.PI * 2); c.fill();
-  }
-
-  // Scattered cumulus — moderate density with decent opacity
+  // Polar sheet coverage — dense, nearly solid
   for (let i = 0; i < 220; i++) {
-    c.globalAlpha = 0.18 + Math.random() * 0.28;
+    const inNorth = Math.random() < 0.5;
+    const yf = inNorth ? Math.random() * 0.10 : (0.90 + Math.random() * 0.10);
+    c.globalAlpha = 0.45 + Math.random() * 0.50;
     c.fillStyle = "#fff";
-    c.beginPath(); c.ellipse(Math.random() * W, Math.random() * H, 12 + Math.random() * 55, 4 + Math.random() * 14, (Math.random() - 0.5) * 0.7, 0, Math.PI * 2); c.fill();
+    c.beginPath();
+    c.ellipse(Math.random() * W, yf * H,
+      55 + Math.random() * 200, 8 + Math.random() * 22,
+      Math.random() * Math.PI, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  // Major weather systems — 6 large irregular masses (no spirals)
+  cloudMass(0.09*W,  0.20*H, 130, 62, 140, 0.35, 0.88); // N Pacific low
+  cloudMass(0.93*W,  0.19*H, 115, 55, 110, 0.32, 0.82); // N Pacific (wraps E edge)
+  cloudMass(0.37*W,  0.19*H, 125, 60, 130, 0.38, 0.90); // N Atlantic low
+  cloudMass(0.20*W,  0.75*H, 130, 58, 120, 0.35, 0.85); // S Pacific low
+  cloudMass(0.58*W,  0.80*H, 115, 52, 105, 0.32, 0.82); // S Indian Ocean
+  cloudMass(0.86*W,  0.76*H, 110, 50, 100, 0.30, 0.80); // S Pacific E
+
+  // Mid-latitude frontal bands — long elongated streaks like satellite photos
+  const fronts = [
+    [0.04, 0.185, 0.42, -0.06], [0.50, 0.175, 0.34,  0.04],
+    [0.78, 0.192, 0.26, -0.10], [0.08, 0.790, 0.40,  0.12],
+    [0.52, 0.805, 0.32, -0.08], [0.84, 0.782, 0.20,  0.06],
+  ];
+  for (const [fx, fy, fw, rot] of fronts) {
+    for (let i = 0; i < 40; i++) {
+      const t = Math.random();
+      const px = (fx + t * fw) * W + (Math.random() - 0.5) * 0.018 * W;
+      const py = fy * H + Math.sin(rot) * t * fw * W + (Math.random() - 0.5) * 0.020 * H;
+      if (py < 0 || py > H) continue;
+      c.globalAlpha = Math.sin(t * Math.PI) * (0.25 + Math.random() * 0.45);
+      c.fillStyle = "#fff";
+      c.save(); c.translate(px, py); c.rotate(rot + (Math.random() - 0.5) * 0.35);
+      c.beginPath(); c.ellipse(0, 0, 50 + Math.random() * 160, 7 + Math.random() * 22, 0, 0, Math.PI * 2);
+      c.fill(); c.restore();
+    }
+  }
+
+  // ITCZ — patchy broken band near equator
+  for (let i = 0; i < 90; i++) {
+    c.globalAlpha = 0.18 + Math.random() * 0.42;
+    c.fillStyle = "#fff";
+    c.beginPath();
+    c.ellipse(
+      (Math.random() * 1.08 - 0.04) * W,
+      (0.44 + (Math.random() - 0.5) * 0.09) * H,
+      25 + Math.random() * 110, 4 + Math.random() * 14,
+      (Math.random() - 0.5) * 0.45, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  // Scattered cumulus everywhere — smaller, lower opacity
+  for (let i = 0; i < 400; i++) {
+    c.globalAlpha = 0.08 + Math.random() * 0.22;
+    c.fillStyle = "#fff";
+    c.beginPath();
+    c.ellipse(Math.random() * W, Math.random() * H,
+      8 + Math.random() * 50, 3 + Math.random() * 12,
+      (Math.random() - 0.5) * 0.7, 0, Math.PI * 2);
+    c.fill();
   }
   c.globalAlpha = 1;
 
